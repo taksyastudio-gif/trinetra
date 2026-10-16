@@ -1,0 +1,19 @@
+# TRINETRA: AI Vision and Navigation Engine for Visually Impaired Individuals
+# Core Backend Dependencies
+
+# Computer Vision & Real-time Ingestion
+opencv-python>=4.8.0
+
+# Edge Deep Learning & Object Detection
+ultralytics>=8.0.0
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Text-to-Speech Engine
+pyttsx3>=2.90
+
+# Numerical Processing
+numpy>=1.24.0
+
+# Optional Hardware Serial/Sensor Interfaces
+pyserial>=3.5
