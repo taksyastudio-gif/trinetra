@@ -52,7 +52,7 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
-# Privacy & Security (Never commit captured frames or models)
+# Privacy & Security (Never commit captured frames, logs, or raw models)
 *.jpg
 *.jpeg
 *.png
@@ -61,10 +61,27 @@ Desktop.ini
 *.weights
 *.pt
 *.onnx
+*.log
+*.dmp
 .env
 .env.local
 .env.*.local
 
 # Allow Tauri application branding icons
 !apps/desktop/src-tauri/icons/**
+
+# Incident recordings and local telemetry
+services/vision-engine/incidents/*
+!services/vision-engine/incidents/.gitkeep
+
+# Local POC, experimental tests, and binary runtimes
+test_piper_poc/
+services/vision-engine/runtime/*
+!services/vision-engine/runtime/.gitkeep
+
+# Temporary local testing dumps
+trinetra-api.json
+*.tmp
+*.tmp.*
+
 

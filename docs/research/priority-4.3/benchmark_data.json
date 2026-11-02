@@ -1,0 +1,85 @@
+{
+  "bgr_320x240": {
+    "count": 800,
+    "mean_ms": 0.5964936249999999,
+    "std_ms": 0.03754409003903777,
+    "min_ms": 0.5132000000000001,
+    "p50_ms": 0.5878,
+    "p95_ms": 0.665905,
+    "p99_ms": 0.7153299999999999,
+    "max_ms": 1.1574,
+    "fps_throughput": 1676.463851562538
+  },
+  "bgr_640x480": {
+    "count": 800,
+    "mean_ms": 2.2232267500000003,
+    "std_ms": 0.4057714683592693,
+    "min_ms": 1.9277,
+    "p50_ms": 2.0732999999999997,
+    "p95_ms": 2.9326599999999994,
+    "p99_ms": 3.524567,
+    "max_ms": 6.9208,
+    "fps_throughput": 449.7966750355086
+  },
+  "jpeg_bytes": {
+    "count": 75,
+    "mean_ms": 0.799164,
+    "p50_ms": 0.7317,
+    "p95_ms": 1.0839799999999993,
+    "p99_ms": 1.3024520000000006
+  },
+  "accuracy": {
+    "matrix": {
+      "sharp_natural": {
+        "total": 100,
+        "NORMAL": 100,
+        "DEGRADED": 0,
+        "SEVERELY_DEGRADED": 0
+      },
+      "motion_blur": {
+        "total": 100,
+        "NORMAL": 0,
+        "DEGRADED": 100,
+        "SEVERELY_DEGRADED": 0
+      },
+      "defocus_blur": {
+        "total": 100,
+        "NORMAL": 0,
+        "DEGRADED": 0,
+        "SEVERELY_DEGRADED": 100
+      },
+      "pitch_black": {
+        "total": 100,
+        "NORMAL": 0,
+        "DEGRADED": 0,
+        "SEVERELY_DEGRADED": 100
+      },
+      "twilight_dim": {
+        "total": 100,
+        "NORMAL": 0,
+        "DEGRADED": 100,
+        "SEVERELY_DEGRADED": 0
+      },
+      "overexposed": {
+        "total": 100,
+        "NORMAL": 0,
+        "DEGRADED": 0,
+        "SEVERELY_DEGRADED": 100
+      },
+      "occluded_lens": {
+        "total": 100,
+        "NORMAL": 0,
+        "DEGRADED": 0,
+        "SEVERELY_DEGRADED": 100
+      },
+      "low_texture_wall": {
+        "total": 100,
+        "NORMAL": 0,
+        "DEGRADED": 100,
+        "SEVERELY_DEGRADED": 0
+      }
+    },
+    "false_rejection_rate_pct": 0.0,
+    "missed_degradation_rate_pct": 0.0
+  }
+}

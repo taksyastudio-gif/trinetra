@@ -1,0 +1,19 @@
+# Trinetra Vision Engine — Verified Dependencies (Windows 11 x64, Python 3.13)
+# To install in a clean virtual environment:
+#   python -m venv .venv
+#   .venv\Scripts\activate
+#   pip install -r requirements.txt
+
+# Production Core
+fastapi==0.143.2
+uvicorn[standard]==0.54.0
+opencv-python==5.0.0.93
+numpy==2.5.4
+onnxruntime==1.31.0
+pydantic==2.14.1
+flatbuffers==25.12.19
+protobuf==7.36.2
+
+# Testing & Quality Gates
+pytest==9.1.1
+httpx==0.28.1

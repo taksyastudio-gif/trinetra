@@ -5,7 +5,6 @@
   "identifier": "org.trinetra.assistive.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
-    "devUrl": "http://127.0.0.1:5173",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
@@ -27,6 +26,11 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": []
+    "icon": [],
+    "resources": [
+      "../../../services/vision-engine/app/**/*",
+      "../../../services/vision-engine/models/**/*",
+      "../../../services/vision-engine/runtime/**/*"
+    ]
   }
 }
