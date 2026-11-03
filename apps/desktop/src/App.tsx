@@ -6,6 +6,7 @@ import { CameraPreview } from "./components/CameraPreview";
 import { DeviceSelector } from "./components/DeviceSelector";
 import { DetectionPanel } from "./components/DetectionPanel";
 import { PrivacyNotice } from "./components/PrivacyNotice";
+import { AssistiveActions } from "./components/AssistiveActions";
 import { cameraApi, ApiError } from "./services/cameraApi";
 import {
   ConnectionStatus,
@@ -547,6 +548,8 @@ export const App: React.FC = () => {
           onToggleMute={handleToggleMute}
           onStopSpeech={handleStopSpeech}
         />
+
+        <AssistiveActions disabled={cameraState !== "active" || connectionStatus !== "connected"} />
 
         <PrivacyNotice />
       </main>

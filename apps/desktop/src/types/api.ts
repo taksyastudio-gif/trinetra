@@ -141,3 +141,12 @@ export interface SupervisorServiceStatus {
   uptime_seconds: number;
   error: string | null;
 }
+
+export interface AssistiveResult {
+  status: string;
+  text?: string;
+  message?: string | null;
+  confidence: number;
+  denomination?: number | null;
+  identity?: string | null;
+}

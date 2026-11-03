@@ -17,6 +17,7 @@ import {
   DetectionResultResponse,
   DetectionStatusResponse,
   SupervisorServiceStatus,
+  AssistiveResult,
 } from "../types/api";
 
 const BASE_URL = "http://127.0.0.1:8000";
@@ -300,6 +301,22 @@ export const cameraApi = {
    */
   async getLatestDetections(): Promise<DetectionResultResponse | null> {
     return requestJson<DetectionResultResponse | null>("/api/detection/latest");
+  },
+
+  async queryScene(question: string): Promise<AssistiveResult> {
+    return requestJson<AssistiveResult>("/api/scene/query", { method: "POST", body: JSON.stringify({ question, speak: true }) });
+  },
+
+  async identifyCurrency(): Promise<AssistiveResult> {
+    return requestJson<AssistiveResult>("/api/currency/identify", { method: "POST", body: JSON.stringify({ speak: true }) });
+  },
+
+  async readText(): Promise<AssistiveResult> {
+    return requestJson<AssistiveResult>("/api/ocr/read", { method: "POST", body: JSON.stringify({ speak: true }) });
+  },
+
+  async recognizeFace(): Promise<AssistiveResult> {
+    return requestJson<AssistiveResult>("/api/faces/recognize", { method: "POST", body: JSON.stringify({ speak: true }) });
   },
 
   /**

@@ -161,7 +161,6 @@ function useScrollReveal(threshold = 0.15) {
 /* ===== Main App ===== */
 const REPO_URL = 'https://github.com/taksyastudio-gif/trinetra'
 const RELEASES_URL = `${REPO_URL}/releases`
-const DESKTOP_GUIDE_URL = `${REPO_URL}/tree/master/apps/desktop#readme`
 
 export default function App() {
   const [scrolled, setScrolled] = useState(false)
@@ -381,9 +380,12 @@ export default function App() {
             and affordable wearable hardware.
           </p>
 
-          <div className="hero-buttons">
-            <button onClick={() => setActiveModal('apk')} className="btn-primary">
-              📱 Download App
+            <div className="hero-buttons">
+            <button onClick={() => setActiveModal('desktop')} className="btn-primary">
+              💻 Desktop & Hardware Suite
+            </button>
+            <button onClick={() => setActiveModal('apk')} className="btn-secondary">
+              📱 Mobile App (Android)
             </button>
             <a
               href={REPO_URL}
@@ -391,7 +393,7 @@ export default function App() {
               rel="noopener noreferrer"
               className="btn-secondary"
             >
-              ⭐ Star on GitHub
+              ⭐ GitHub
             </a>
           </div>
         </div>
@@ -675,61 +677,61 @@ export default function App() {
             ) : (
               <>
                 <div className="modal-header">
-                  <h3>💻 Trinetra Desktop (Windows)</h3>
+                  <h3>💻 Trinetra Desktop & Hardware Suite</h3>
                   <p className="nepali" style={{ color: 'var(--accent-purple)' }}>
-                    डेस्कटप संस्करण (Tauri 2 + Python Vision Engine)
+                    हार्डवेयर विकास र परीक्षण सुइट (Tauri 2 + Python Vision Engine)
                   </p>
                   <p style={{ marginTop: '8px' }}>
-                    High-performance assistive vision workstation for PCs with connected USB webcams.
+                    Real-time visual feed, ESP32-CAM stream receiver, AI obstacle detection, and live audio guidance on Windows.
                   </p>
                 </div>
 
                 <div className="modal-options">
                   <a
-                    href={DESKTOP_GUIDE_URL}
+                    href={`${REPO_URL}/blob/master/hardware/firmware/esp32-cam/trinetra_esp32_cam.ino`}
                     className="download-option-card"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
                     <div className="download-option-info">
-                      <span className="option-icon">⚙️</span>
+                      <span className="option-icon">📷</span>
                       <div>
-                        <h4>Developer Quickstart</h4>
-                        <span>Run locally with Tauri 2 + Python FastAPI</span>
+                        <h4>ESP32-CAM Firmware (.ino)</h4>
+                        <span>Flash AI-Thinker module with low-latency MJPEG stream</span>
                       </div>
                     </div>
                     <span className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-                      View Guide ↗
+                      Get Code ↗
                     </span>
                   </a>
 
                   <a
-                    href={RELEASES_URL}
+                    href={`${REPO_URL}/archive/refs/heads/master.zip`}
                     className="download-option-card"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
                     <div className="download-option-info">
-                      <span className="option-icon">🪟</span>
+                      <span className="option-icon">📦</span>
                       <div>
-                        <h4>Windows Release Binary (.msi)</h4>
-                        <span>Pre-compiled desktop installer on GitHub Releases</span>
+                        <h4>Download Source (.zip)</h4>
+                        <span>Complete workstation with 1-click launcher</span>
                       </div>
                     </div>
                     <span className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-                      Releases ↗
+                      Download ZIP ↓
                     </span>
                   </a>
                 </div>
 
                 <div className="modal-steps">
-                  <h5>Developer Command</h5>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                    Run directly on your Windows PC:
-                  </p>
-                  <code style={{ background: '#050510', padding: '8px 12px', display: 'block', borderRadius: '6px', color: 'var(--accent-teal)', fontSize: '0.85rem' }}>
-                    cd apps/desktop; npm run tauri dev
-                  </code>
+                  <h5>⚡ 1-Click Hardware Test (Hardware Teammates)</h5>
+                  <ol>
+                    <li>Clone or download repository: <code>git clone {REPO_URL}.git</code></li>
+                    <li>Double-click <strong><code>start-trinetra.bat</code></strong> in the project folder.</li>
+                    <li>In the desktop window, switch to <strong>"📡 Network Stream (ESP32-CAM)"</strong> tab.</li>
+                    <li>Enter your ESP32-CAM stream URL (e.g. <code>http://192.168.1.100:81/stream</code>) and click <strong>Start Camera</strong>!</li>
+                  </ol>
                 </div>
 
                 <div className="modal-footer">

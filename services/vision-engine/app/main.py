@@ -33,8 +33,10 @@ from app.camera.adapter import (
     CameraReconnectingError,
     FakeCameraAdapter,
     FrameCaptureError,
+    MJPEGStreamCameraAdapter,
     OpenCVCameraAdapter,
 )
+from app.capabilities import CurrencyService, FaceRegistry, OCRService, SceneService
 
 from pathlib import Path
 
@@ -249,6 +251,30 @@ class LocationConfigureRequest(BaseModel):
     manual_accuracy_meters: Optional[float] = None
 
 
+class SceneQueryRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=300)
+    speak: bool = False
+
+
+class CurrencyIdentifyRequest(BaseModel):
+    speak: bool = False
+
+
+class OCRReadRequest(BaseModel):
+    speak: bool = False
+
+
+class FaceRecognizeRequest(BaseModel):
+    speak: bool = False
+
+
+class CapabilityStatusResponse(BaseModel):
+    scene: Dict[str, Any]
+    currency: Dict[str, Any]
+    ocr: Dict[str, Any]
+    faces: Dict[str, Any]
+
+
 def get_default_camera_adapter() -> CameraAdapter:
     env_fake = os.environ.get("TRINETRA_USE_FAKE_CAMERA", "").lower() in ("1", "true", "yes")
     if env_fake:
@@ -284,7 +310,9 @@ class CameraManager:
                 self.session_id = None
             if "perception_pipeline" in globals() and perception_pipeline is not None:
                 perception_pipeline.reset_session()
-            if isinstance(self.adapter, OpenCVCameraAdapter):
+            if isinstance(new_index, str) and new_index.startswith(("http://", "https://")):
+                self.adapter = MJPEGStreamCameraAdapter(stream_url=new_index)
+            elif isinstance(self.adapter, OpenCVCameraAdapter):
                 self.adapter = OpenCVCameraAdapter(camera_index=new_index)
             elif isinstance(self.adapter, FakeCameraAdapter):
                 # FakeCameraAdapter preserves mock capabilities
@@ -387,6 +415,10 @@ camera_manager = CameraManager()
 speech_manager = SpeechManager()
 location_manager = LocationManager()
 incident_recorder = IncidentRecorder(speech_manager=speech_manager)
+scene_service = SceneService()
+currency_service = CurrencyService()
+ocr_service = OCRService()
+face_registry = FaceRegistry()
 
 perception_pipeline = PerceptionPipeline(
     speech_manager=speech_manager,
@@ -536,7 +568,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=allowed_origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
         allow_headers=["*"],
         expose_headers=["X-Frame-Id", "X-Captured-At", "X-Frames-Dropped", "X-Session-Id"],
     )
@@ -548,6 +580,22 @@ def create_app(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Unauthorized: Invalid or missing X-Trinetra-Session-Token."
             )
+
+    def capture_capability_frame():
+        """Capture one explicit, current frame through the sole camera adapter."""
+        if not camera_manager.adapter.is_active():
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                                detail="Camera is not active. Start it before requesting this capability.")
+        try:
+            packet = camera_manager.adapter.capture_packet()
+            if perception_pipeline.is_active():
+                perception_pipeline.submit_frame(packet)
+            return packet
+        except CameraReconnectingError as exc:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        except (CameraError, ValueError) as exc:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                detail="Could not acquire a current camera frame.") from exc
 
     @app.get(
         "/api/health",
@@ -1002,6 +1050,70 @@ def create_app(
             model_name=latest.model_name,
             e2e_latency_ms=getattr(latest, "e2e_latency_ms", 0.0)
         )
+
+    # =========================================================================
+    # On-demand assistive capabilities.  These never start the camera and all
+    # share capture_capability_frame(), preserving the one-camera invariant.
+    # =========================================================================
+
+    @app.get("/api/capabilities/status", response_model=CapabilityStatusResponse,
+             dependencies=[Depends(verify_token)], tags=["Capabilities"])
+    def capabilities_status():
+        return CapabilityStatusResponse(
+            scene={"available": True, "provider": "local_detection"},
+            currency=currency_service.status(),
+            ocr={"available": True, "provider": "pytesseract_optional", "language": ocr_service.language},
+            faces={"available": False, "registered_people": len(face_registry.list_people()), "local_only": True},
+        )
+
+    @app.post("/api/scene/query", dependencies=[Depends(verify_token)], tags=["Scene"])
+    def scene_query(payload: SceneQueryRequest):
+        packet = capture_capability_frame()
+        detections = []
+        if perception_pipeline.engine.is_ready():
+            try:
+                detections = perception_pipeline.engine.detect(packet.jpeg_bytes, packet.frame_id).detections
+            except Exception:
+                logger.warning("On-demand scene detector failed", exc_info=True)
+        result = scene_service.describe(payload.question, detections)
+        if payload.speak:
+            speech_manager.announce(result["text"], priority=SpeechPriority.INFORMATIONAL, language="ne")
+        return result
+
+    @app.post("/api/currency/identify", dependencies=[Depends(verify_token)], tags=["Currency"])
+    def currency_identify(payload: CurrencyIdentifyRequest):
+        packet = capture_capability_frame()
+        result = currency_service.identify(packet.jpeg_bytes)
+        if payload.speak:
+            speech_manager.announce(result["message"], priority=SpeechPriority.INFORMATIONAL, language="ne")
+        return result
+
+    @app.post("/api/ocr/read", dependencies=[Depends(verify_token)], tags=["OCR"])
+    def ocr_read(payload: OCRReadRequest):
+        packet = capture_capability_frame()
+        result = ocr_service.read(packet.jpeg_bytes)
+        if payload.speak:
+            speech_manager.announce(result["text"] or result["message"], priority=SpeechPriority.INFORMATIONAL, language="ne")
+        return result
+
+    @app.post("/api/faces/recognize", dependencies=[Depends(verify_token)], tags=["Faces"])
+    def faces_recognize(payload: FaceRecognizeRequest):
+        packet = capture_capability_frame()
+        result = face_registry.recognize(packet.jpeg_bytes)
+        if payload.speak:
+            speech_manager.announce(result["message"], priority=SpeechPriority.INFORMATIONAL, language="ne")
+        return result
+
+    @app.get("/api/faces", dependencies=[Depends(verify_token)], tags=["Faces"])
+    def faces_list():
+        """Lists local consented identities without exposing templates or images."""
+        return {"people": face_registry.list_people(), "local_only": True}
+
+    @app.delete("/api/faces/{person_id}", dependencies=[Depends(verify_token)], tags=["Faces"])
+    def faces_delete(person_id: str):
+        if not face_registry.delete(person_id):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registered person not found.")
+        return {"status": "deleted"}
 
     # =========================================================================
     # Accessible Incident Documentation Endpoints

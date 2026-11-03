@@ -13,6 +13,7 @@ import threading
 import time
 from typing import Any, Dict, Optional, Tuple, Union
 import uuid
+from urllib.request import Request, urlopen
 
 logger = logging.getLogger("trinetra.camera")
 
@@ -490,6 +491,150 @@ class OpenCVCameraAdapter(CameraAdapter):
                     )
                 )
         return devices
+
+
+# =============================================================================
+# ESP32-CAM MJPEG adapter
+# =============================================================================
+
+class MJPEGStreamCameraAdapter(CameraAdapter):
+    """A bounded, newest-frame adapter for an ESP32-CAM HTTP MJPEG stream.
+
+    This deliberately owns no second perception pipeline: callers receive the
+    same :class:`FramePacket` used by local cameras.  The stream is opened only
+    after explicit camera start, and decoded frames are never written to disk.
+    """
+
+    def __init__(self, stream_url: str, timeout_seconds: float = 4.0, max_frame_bytes: int = 2_000_000):
+        if not stream_url.startswith(("http://", "https://")):
+            raise ValueError("MJPEG stream URL must use http:// or https://.")
+        self.stream_url = stream_url
+        self.timeout_seconds = max(0.5, timeout_seconds)
+        self.max_frame_bytes = max_frame_bytes
+        self._response: Any = None
+        self._buffer = bytearray()
+        self._active = False
+        self._lock = threading.RLock()
+        self._frame_seq = 0
+        self._dropped_frames = 0
+        self._session_id = ""
+        self._started_at: Optional[float] = None
+        self._last_frame_at: Optional[float] = None
+        self._last_error: Optional[str] = None
+        self._connection_state = CameraConnectionState.DISCONNECTED
+        self._reconnect_attempts = 0
+        self.max_reconnect_attempts = 5
+
+    def _open(self) -> None:
+        request = Request(self.stream_url, headers={"User-Agent": "Trinetra/1.0", "Accept": "multipart/x-mixed-replace,image/jpeg"})
+        self._response = urlopen(request, timeout=self.timeout_seconds)
+        self._connection_state = CameraConnectionState.CONNECTED
+        self._last_error = None
+
+    def start(self) -> None:
+        with self._lock:
+            if self._active:
+                return
+            self._connection_state = CameraConnectionState.CONNECTING
+            try:
+                self._open()
+            except Exception as exc:
+                self._connection_state = CameraConnectionState.ERROR
+                self._last_error = "Unable to connect to MJPEG stream."
+                raise CameraInitializationError(self._last_error) from exc
+            self._active = True
+            self._frame_seq = self._dropped_frames = self._reconnect_attempts = 0
+            self._buffer.clear()
+            self._session_id = uuid.uuid4().hex
+            self._started_at = time.time()
+
+    def stop(self) -> None:
+        with self._lock:
+            response, self._response = self._response, None
+            if response is not None:
+                try:
+                    response.close()
+                except Exception:
+                    pass
+            self._buffer.clear()
+            self._active = False
+            self._connection_state = CameraConnectionState.DISCONNECTED
+            self._session_id = ""
+
+    def is_active(self) -> bool:
+        with self._lock:
+            return self._active
+
+    def _reconnect(self, cause: Exception) -> None:
+        self._reconnect_attempts += 1
+        self._connection_state = CameraConnectionState.RECONNECTING
+        self._last_error = "MJPEG stream read failed; reconnecting."
+        if self._reconnect_attempts > self.max_reconnect_attempts:
+            self._connection_state = CameraConnectionState.ERROR
+            raise CameraConnectionExhaustedError(self.max_reconnect_attempts) from cause
+        try:
+            if self._response is not None:
+                self._response.close()
+            self._buffer.clear()
+            self._open()
+            self._reconnect_attempts = 0
+        except Exception as exc:
+            raise CameraReconnectingError(self._reconnect_attempts, self.max_reconnect_attempts, 1.0) from exc
+
+    def capture_packet(self) -> FramePacket:
+        with self._lock:
+            if not self._active:
+                raise CameraNotActiveError("MJPEG camera is not active.")
+            try:
+                deadline = time.monotonic() + self.timeout_seconds
+                while time.monotonic() < deadline:
+                    start = self._buffer.find(b"\xff\xd8")
+                    end = self._buffer.find(b"\xff\xd9", start + 2) if start >= 0 else -1
+                    if start >= 0 and end >= 0:
+                        jpeg = bytes(self._buffer[start:end + 2])
+                        del self._buffer[:end + 2]
+                        if len(jpeg) > self.max_frame_bytes:
+                            raise FrameCaptureError("MJPEG frame exceeded configured size limit.")
+                        # Validate JPEG data before making it visible to models.
+                        try:
+                            import cv2
+                            import numpy as np
+                            image = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
+                            if image is None:
+                                raise FrameCaptureError("MJPEG stream produced an invalid JPEG frame.")
+                            height, width = image.shape[:2]
+                        except ImportError:
+                            raise FrameCaptureError("OpenCV is required to validate MJPEG frames.")
+                        self._frame_seq += 1
+                        self._last_frame_at = time.time()
+                        return FramePacket(self._frame_seq, self._last_frame_at, jpeg, width, height,
+                                           "mjpeg:" + self.stream_url, self._dropped_frames, self._session_id)
+                    chunk = self._response.read(8192) if self._response is not None else b""
+                    if not chunk:
+                        raise OSError("MJPEG stream ended")
+                    self._buffer.extend(chunk)
+                    if len(self._buffer) > self.max_frame_bytes * 2:
+                        # Preserve only a tail; stale/incomplete network data must not grow unbounded.
+                        del self._buffer[:-self.max_frame_bytes]
+                        self._dropped_frames += 1
+                raise FrameCaptureError("Timed out waiting for a fresh MJPEG frame.")
+            except FrameCaptureError:
+                raise
+            except Exception as exc:
+                self._reconnect(exc)
+                raise CameraReconnectingError(self._reconnect_attempts or 1, self.max_reconnect_attempts, 1.0) from exc
+
+    def get_status(self) -> Dict[str, Any]:
+        with self._lock:
+            return {"active": self._active, "adapter": "MJPEGStreamCameraAdapter", "source_type": "mjpeg",
+                    "camera_index": self.stream_url, "resolution": None, "frames_captured": self._frame_seq,
+                    "dropped_frames": self._dropped_frames, "uptime_seconds": round(time.time() - self._started_at, 1) if self._started_at else 0.0,
+                    "session_id": self._session_id, "connection_state": self._connection_state.value,
+                    "reconnect_attempts": self._reconnect_attempts, "max_reconnect_attempts": self.max_reconnect_attempts,
+                    "last_error": self._last_error, "last_frame_at": self._last_frame_at}
+
+    def enumerate_devices(self) -> list[CameraDeviceInfo]:
+        return []
 
 
 # =============================================================================

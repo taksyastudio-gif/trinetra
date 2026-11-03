@@ -714,6 +714,16 @@ code {
   border-left-color: #a855f7;
 }
 
+.assistive-actions {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.assistive-actions h2 { margin-top: 0; font-size: 1.1rem; }
+.assistive-result { color: var(--text-secondary); margin: 12px 0 0; min-height: 1.5rem; }
+
 .detection-card-header {
   display: flex;
   justify-content: space-between;
