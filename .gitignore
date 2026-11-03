@@ -75,6 +75,19 @@ Desktop.ini
 services/vision-engine/incidents/*
 !services/vision-engine/incidents/.gitkeep
 
+# Local datasets and trained capability artifacts (metadata reports may be exported separately)
+datasets/currency/raw/
+datasets/currency/processed/
+datasets/currency/annotations/
+datasets/currency/splits/
+datasets/currency/metadata/
+datasets/ocr/raw/
+datasets/ocr/processed/
+datasets/ocr/annotations/
+datasets/ocr/splits/
+datasets/ocr/metadata/
+services/vision-engine/models/currency/
+
 # Local POC, experimental tests, and binary runtimes
 test_piper_poc/
 services/vision-engine/runtime/*

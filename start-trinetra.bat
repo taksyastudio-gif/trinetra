@@ -41,7 +41,9 @@ if not exist node_modules (
 
 echo Launching Trinetra interface...
 :: If tauri release exists, open it, else run vite dev server
-if exist src-tauri\target\release\trinetra_desktop.exe (
+if exist src-tauri\target\release\trinetra-desktop.exe (
+    start "" "src-tauri\target\release\trinetra-desktop.exe"
+) else if exist src-tauri\target\release\trinetra_desktop.exe (
     start "" "src-tauri\target\release\trinetra_desktop.exe"
 ) else (
     start "Trinetra Desktop Host" cmd /k "npm run tauri dev"

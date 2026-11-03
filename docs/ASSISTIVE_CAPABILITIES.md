@@ -20,6 +20,8 @@ python tools/collect_currency.py import --label 100 --source C:\samples\npr100 -
 python tools/validate_dataset.py currency
 python tools/prepare_datasets.py currency
 python tools/train_currency.py
+python tools/evaluate_models.py --predictions C:\results\held_out.jsonl --output C:\results\currency_metrics.json
+python tools/export_models.py --onnx C:\results\currency.onnx --version 2026-11-03
 python tools/collect_ocr.py --csv C:\samples\nepali_labels.csv
 python tools/validate_dataset.py ocr
 python tools/prepare_datasets.py ocr
