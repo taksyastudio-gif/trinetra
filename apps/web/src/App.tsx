@@ -161,6 +161,7 @@ function useScrollReveal(threshold = 0.15) {
 /* ===== Main App ===== */
 const REPO_URL = 'https://github.com/taksyastudio-gif/trinetra'
 const RELEASES_URL = `${REPO_URL}/releases`
+const DESKTOP_EXE_DOWNLOAD_URL = `${REPO_URL}/releases/latest/download/trinetra-desktop.exe`
 
 export default function App() {
   const [scrolled, setScrolled] = useState(false)
@@ -688,6 +689,24 @@ export default function App() {
 
                 <div className="modal-options">
                   <a
+                    href={DESKTOP_EXE_DOWNLOAD_URL}
+                    className="download-option-card"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <div className="download-option-info">
+                      <span className="option-icon">🪟</span>
+                      <div>
+                        <h4>Download Desktop Executable (.exe)</h4>
+                        <span>v0.1.0 Standalone Windows App • No setup required</span>
+                      </div>
+                    </div>
+                    <span className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+                      Download EXE ↓
+                    </span>
+                  </a>
+
+                  <a
                     href={`${REPO_URL}/blob/master/hardware/firmware/esp32-cam/trinetra_esp32_cam.ino`}
                     className="download-option-card"
                     target="_blank"
@@ -700,7 +719,7 @@ export default function App() {
                         <span>Flash AI-Thinker module with low-latency MJPEG stream</span>
                       </div>
                     </div>
-                    <span className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+                    <span className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
                       Get Code ↗
                     </span>
                   </a>
