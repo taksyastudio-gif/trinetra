@@ -159,10 +159,25 @@ function useScrollReveal(threshold = 0.15) {
 }
 
 /* ===== Main App ===== */
+const REPO_URL = 'https://github.com/taksyastudio-gif/trinetra'
+const RELEASES_URL = `${REPO_URL}/releases`
+const APK_DOWNLOAD_URL = `${REPO_URL}/releases/latest/download/trinetra.apk`
+const DESKTOP_GUIDE_URL = `${REPO_URL}/tree/master/apps/desktop#readme`
+
 export default function App() {
   const [scrolled, setScrolled] = useState(false)
+  const [activeModal, setActiveModal] = useState<'apk' | 'desktop' | null>(null)
   const heroRef = useRef<HTMLDivElement>(null)
   const sectionRef = useScrollReveal()
+
+  // Close modal on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setActiveModal(null)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Navbar scroll effect
   useEffect(() => {
@@ -331,7 +346,7 @@ export default function App() {
             <a href="#how-it-works">How it Works</a>
             <a href="#architecture">Architecture</a>
             <a href="#open-source">Open Source</a>
-            <a href="#download" className="nav-cta">Download</a>
+            <button onClick={() => setActiveModal('apk')} className="nav-cta">Download</button>
           </div>
           <button className="mobile-menu-btn" aria-label="Toggle menu">
             <span /><span /><span />
@@ -368,11 +383,11 @@ export default function App() {
           </p>
 
           <div className="hero-buttons">
-            <a href="#download" className="btn-primary">
+            <button onClick={() => setActiveModal('apk')} className="btn-primary">
               📱 Download App
-            </a>
+            </button>
             <a
-              href="https://github.com/trinetra"
+              href={REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-secondary"
@@ -519,12 +534,12 @@ export default function App() {
               The app auto-updates — install once, always stay current.
             </p>
             <div className="download-buttons">
-              <a href="#" className="btn-primary">
+              <button onClick={() => setActiveModal('apk')} className="btn-primary">
                 📱 Download APK
-              </a>
-              <a href="#" className="btn-secondary">
+              </button>
+              <button onClick={() => setActiveModal('desktop')} className="btn-secondary">
                 💻 Desktop App
-              </a>
+              </button>
             </div>
             <div className="download-badge">
               ✨ Auto-updates via EAS Update on every release
@@ -554,14 +569,19 @@ export default function App() {
             </p>
             <div style={{ marginTop: '32px', display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <a
-                href="https://github.com/trinetra"
+                href={REPO_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary"
               >
                 🐙 View on GitHub
               </a>
-              <a href="#" className="btn-secondary">
+              <a
+                href={`${REPO_URL}#readme`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary"
+              >
                 📖 Read the Docs
               </a>
             </div>
@@ -577,15 +597,161 @@ export default function App() {
             <span>Trinetra</span>
           </div>
           <div className="footer-links">
-            <a href="https://github.com/trinetra" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href={REPO_URL} target="_blank" rel="noopener noreferrer">GitHub</a>
             <a href="#features">Features</a>
-            <a href="#download">Download</a>
+            <button onClick={() => setActiveModal('apk')} style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              Download
+            </button>
           </div>
           <div className="footer-right">
             Made with ❤️ in Nepal 🇳🇵 • Open Source
           </div>
         </div>
       </footer>
+
+      {/* Download Modal */}
+      {activeModal && (
+        <div className="modal-backdrop" onClick={() => setActiveModal(null)} role="dialog" aria-modal="true">
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="modal-close-btn"
+              onClick={() => setActiveModal(null)}
+              aria-label="Close dialog"
+            >
+              ✕
+            </button>
+
+            {activeModal === 'apk' ? (
+              <>
+                <div className="modal-header">
+                  <h3>📱 Download Trinetra for Android</h3>
+                  <p className="nepali" style={{ color: 'var(--accent-cyan)' }}>
+                    त्रिनेत्र एन्ड्रोइड एप डाउनलोड गर्नुहोस्
+                  </p>
+                  <p style={{ marginTop: '8px' }}>
+                    Install the APK directly onto your Android device. Once installed, future updates are delivered over-the-air seamlessly.
+                  </p>
+                </div>
+
+                <div className="modal-options">
+                  <a
+                    href={APK_DOWNLOAD_URL}
+                    className="download-option-card"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <div className="download-option-info">
+                      <span className="option-icon">⬇️</span>
+                      <div>
+                        <h4>Direct APK Download</h4>
+                        <span>Latest Release • Android 8.0+</span>
+                      </div>
+                    </div>
+                    <span className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+                      Download
+                    </span>
+                  </a>
+
+                  <a
+                    href={RELEASES_URL}
+                    className="download-option-card"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <div className="download-option-info">
+                      <span className="option-icon">📦</span>
+                      <div>
+                        <h4>GitHub Releases Page</h4>
+                        <span>Browse all build artifacts, changelogs & tags</span>
+                      </div>
+                    </div>
+                    <span className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+                      Releases ↗
+                    </span>
+                  </a>
+                </div>
+
+                <div className="modal-steps">
+                  <h5>Installation Guide (३ सजिला चरणहरू)</h5>
+                  <ol>
+                    <li>Tap <strong>Direct APK Download</strong> to save <code>trinetra.apk</code> to your device.</li>
+                    <li>Open your Downloads folder, tap the file, and toggle <strong>"Allow from this source"</strong> if prompted.</li>
+                    <li>Open Trinetra! Any new push to GitHub will automatically stream updates to your app without reinstalling.</li>
+                  </ol>
+                </div>
+
+                <div className="modal-footer">
+                  🔒 100% Free & Open Source • Zero Cloud Analytics
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="modal-header">
+                  <h3>💻 Trinetra Desktop (Windows)</h3>
+                  <p className="nepali" style={{ color: 'var(--accent-purple)' }}>
+                    डेस्कटप संस्करण (Tauri 2 + Python Vision Engine)
+                  </p>
+                  <p style={{ marginTop: '8px' }}>
+                    High-performance assistive vision workstation for PCs with connected USB webcams.
+                  </p>
+                </div>
+
+                <div className="modal-options">
+                  <a
+                    href={DESKTOP_GUIDE_URL}
+                    className="download-option-card"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <div className="download-option-info">
+                      <span className="option-icon">⚙️</span>
+                      <div>
+                        <h4>Developer Quickstart</h4>
+                        <span>Run locally with Tauri 2 + Python FastAPI</span>
+                      </div>
+                    </div>
+                    <span className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+                      View Guide ↗
+                    </span>
+                  </a>
+
+                  <a
+                    href={RELEASES_URL}
+                    className="download-option-card"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <div className="download-option-info">
+                      <span className="option-icon">🪟</span>
+                      <div>
+                        <h4>Windows Release Binary (.msi)</h4>
+                        <span>Pre-compiled desktop installer on GitHub Releases</span>
+                      </div>
+                    </div>
+                    <span className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+                      Releases ↗
+                    </span>
+                  </a>
+                </div>
+
+                <div className="modal-steps">
+                  <h5>Developer Command</h5>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                    Run directly on your Windows PC:
+                  </p>
+                  <code style={{ background: '#050510', padding: '8px 12px', display: 'block', borderRadius: '6px', color: 'var(--accent-teal)', fontSize: '0.85rem' }}>
+                    cd apps/desktop; npm run tauri dev
+                  </code>
+                </div>
+
+                <div className="modal-footer">
+                  Runs 100% offline at 127.0.0.1 with zero cloud uploads
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   )
 }
