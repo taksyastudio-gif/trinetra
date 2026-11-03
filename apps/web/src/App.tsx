@@ -161,7 +161,6 @@ function useScrollReveal(threshold = 0.15) {
 /* ===== Main App ===== */
 const REPO_URL = 'https://github.com/taksyastudio-gif/trinetra'
 const RELEASES_URL = `${REPO_URL}/releases`
-const APK_DOWNLOAD_URL = `${REPO_URL}/releases/latest/download/trinetra.apk`
 const DESKTOP_GUIDE_URL = `${REPO_URL}/tree/master/apps/desktop#readme`
 
 export default function App() {
@@ -635,24 +634,6 @@ export default function App() {
 
                 <div className="modal-options">
                   <a
-                    href={APK_DOWNLOAD_URL}
-                    className="download-option-card"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <div className="download-option-info">
-                      <span className="option-icon">⬇️</span>
-                      <div>
-                        <h4>Direct APK Download</h4>
-                        <span>Latest Release • Android 8.0+</span>
-                      </div>
-                    </div>
-                    <span className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-                      Download
-                    </span>
-                  </a>
-
-                  <a
                     href={RELEASES_URL}
                     className="download-option-card"
                     target="_blank"
@@ -661,14 +642,21 @@ export default function App() {
                     <div className="download-option-info">
                       <span className="option-icon">📦</span>
                       <div>
-                        <h4>GitHub Releases Page</h4>
-                        <span>Browse all build artifacts, changelogs & tags</span>
+                        <h4>GitHub Releases (Pre-Release)</h4>
+                        <span>Download APK & inspect release builds</span>
                       </div>
                     </div>
-                    <span className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+                    <span className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
                       Releases ↗
                     </span>
                   </a>
+                </div>
+
+                <div className="modal-steps" style={{ borderColor: 'rgba(236, 72, 153, 0.4)', background: 'rgba(236, 72, 153, 0.05)' }}>
+                  <h5 style={{ color: 'var(--accent-pink)' }}>⚠️ Note for Teammates & Testers</h5>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    The Android APK build pipeline is currently being initialized. Once our first mobile build passes CI, the ready-to-install <code>trinetra.apk</code> will be directly downloadable here and on the Releases page!
+                  </p>
                 </div>
 
                 <div className="modal-steps">
