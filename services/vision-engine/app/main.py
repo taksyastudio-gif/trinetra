@@ -42,6 +42,17 @@ from app.assistant import AssistantDialogueManager
 from trinetra_core.events import EventBus, Event, EventType, EventCategory, EventPriority
 from trinetra_core.capabilities import DeviceCapabilities, DeviceTier
 from trinetra_core.lite_mode import LiteModeController
+from trinetra_core.types import AutonomyLevel
+from trinetra_core.caretaker import (
+    ContextMemory,
+    MedicationItem,
+    CaregiverContact,
+    CaregiverLink,
+    RoutineScheduler,
+    FallDetector,
+    InactivityMonitor,
+    AutonomySupervisor,
+)
 import time
 
 from pathlib import Path
@@ -166,6 +177,37 @@ class SpeechAnnounceRequest(BaseModel):
 
 class SetTierRequest(BaseModel):
     tier: str = Field(description="'full', 'standard', 'lite', or 'auto'")
+
+
+class AutonomyLevelRequest(BaseModel):
+    level: int = Field(ge=0, le=4, description="0=L0_INFORM, 1=L1_SUGGEST, 2=L2_ACT_CONFIRMED, 3=L3_ROUTINE_AUTO, 4=L4_EMERGENCY")
+
+
+class MedicationAddRequest(BaseModel):
+    medicine_name: str
+    dosage: str
+    timing_type: Optional[str] = "after_meal"
+    time_of_day: str  # "08:00"
+    days_of_week: Optional[str] = "daily"
+    notes: Optional[str] = ""
+
+
+class ContactAddRequest(BaseModel):
+    name: str
+    relationship: str
+    phone_number: str
+    is_primary_emergency: Optional[bool] = False
+
+
+class EmergencyTriggerRequest(BaseModel):
+    incident_type: Optional[str] = "manual_panic"
+    reason: Optional[str] = "User triggered emergency assistance"
+    duration_seconds: Optional[float] = 10.0
+
+
+class EmergencyCancelRequest(BaseModel):
+    reason: Optional[str] = "user_ok"
+
 
 
 
@@ -498,6 +540,27 @@ ocr_service = OCRService()
 face_registry = FaceRegistry()
 event_bus = EventBus()
 lite_mode_controller = LiteModeController(event_bus=event_bus)
+
+context_memory = ContextMemory(os.environ.get("TRINETRA_DB_PATH", "trinetra_caretaker.db"))
+caregiver_link = CaregiverLink(memory=context_memory)
+routine_scheduler = RoutineScheduler(memory=context_memory, event_bus=event_bus)
+fall_detector = FallDetector()
+inactivity_monitor = InactivityMonitor()
+
+def _speak_caretaker_prompt(text: str, interrupt: bool = False):
+    speech_manager.announce(
+        text=text,
+        priority=SpeechPriority.CRITICAL_HAZARD if interrupt else SpeechPriority.SPATIAL_NAVIGATION,
+        interrupt=interrupt,
+        language="ne",
+    )
+
+autonomy_supervisor = AutonomySupervisor(
+    memory=context_memory,
+    caregiver_link=caregiver_link,
+    event_bus=event_bus,
+    speech_callback=_speak_caretaker_prompt,
+)
 
 perception_pipeline = PerceptionPipeline(
     speech_manager=speech_manager,
@@ -1594,6 +1657,199 @@ def create_app(
         """Returns recent events from the in-memory bus with SHA-256 hash chains."""
         events = event_bus.get_history(limit=limit)
         return [e.to_dict() for e in events]
+
+    # =========================================================================
+    # Caretaker & Autonomy Endpoints
+    # =========================================================================
+
+    @app.get(
+        "/api/caretaker/autonomy",
+        dependencies=[Depends(verify_token)],
+        summary="Get Active Autonomy Governance Level",
+        tags=["Caretaker"]
+    )
+    def caretaker_get_autonomy():
+        """Returns current L0-L4 autonomy level and status."""
+        return autonomy_supervisor.get_status()
+
+    @app.post(
+        "/api/caretaker/autonomy",
+        dependencies=[Depends(verify_token)],
+        summary="Set Autonomy Governance Level",
+        tags=["Caretaker"]
+    )
+    def caretaker_set_autonomy(payload: AutonomyLevelRequest):
+        """Sets autonomy level (0=L0_INFORM, 1=L1_SUGGEST, 2=L2_ACT_CONFIRMED, 3=L3_ROUTINE_AUTO, 4=L4_EMERGENCY)."""
+        lvl = AutonomyLevel(payload.level)
+        autonomy_supervisor.set_autonomy_level(lvl)
+        return {"status": "updated", "autonomy": autonomy_supervisor.get_status()}
+
+    @app.get(
+        "/api/caretaker/medications",
+        dependencies=[Depends(verify_token)],
+        summary="List Active Medications",
+        tags=["Caretaker"]
+    )
+    def caretaker_list_medications():
+        """Lists active scheduled medications."""
+        meds = context_memory.list_medications(active_only=True)
+        return [m.to_dict() for m in meds]
+
+    @app.post(
+        "/api/caretaker/medications",
+        dependencies=[Depends(verify_token)],
+        summary="Add Medication Schedule",
+        tags=["Caretaker"]
+    )
+    def caretaker_add_medication(payload: MedicationAddRequest):
+        """Adds a medication reminder schedule."""
+        med = MedicationItem(
+            id=None,
+            medicine_name=payload.medicine_name,
+            dosage=payload.dosage,
+            timing_type=payload.timing_type or "after_meal",
+            time_of_day=payload.time_of_day,
+            days_of_week=payload.days_of_week or "daily",
+            notes=payload.notes or "",
+        )
+        med_id = context_memory.add_medication(med)
+        return {"status": "created", "medication_id": med_id}
+
+    @app.get(
+        "/api/caretaker/medications/due",
+        dependencies=[Depends(verify_token)],
+        summary="Check Medications Due Now",
+        tags=["Caretaker"]
+    )
+    def caretaker_check_due_medications(speak: bool = False):
+        """Checks medications currently due and optionally announces aloud in Nepali."""
+        due = routine_scheduler.check_due_medications()
+        if speak and due:
+            for d in due:
+                speech_manager.announce(
+                    text=d.spoken_prompt_ne,
+                    priority=SpeechPriority.SPATIAL_NAVIGATION,
+                    language="ne",
+                )
+        return [
+            {
+                "medication_id": d.medication_id,
+                "medicine_name": d.medicine_name,
+                "dosage": d.dosage,
+                "prompt_ne": d.spoken_prompt_ne,
+                "scheduled_time": d.scheduled_time,
+            }
+            for d in due
+        ]
+
+    @app.post(
+        "/api/caretaker/medications/{med_id}/take",
+        dependencies=[Depends(verify_token)],
+        summary="Acknowledge Medication Taken",
+        tags=["Caretaker"]
+    )
+    def caretaker_take_medication(med_id: int):
+        """Marks medication as taken for today and speaks confirmation."""
+        ok = routine_scheduler.acknowledge_taken(med_id)
+        if not ok:
+            raise HTTPException(status_code=404, detail="Medication ID not found")
+        msg = "औषधि लिइएको प्रमाणित भयो। धन्यवाद।"
+        speech_manager.announce(text=msg, priority=SpeechPriority.SPATIAL_NAVIGATION, language="ne")
+        return {"status": "acknowledged", "medication_id": med_id, "message": msg}
+
+    @app.get(
+        "/api/caretaker/contacts",
+        dependencies=[Depends(verify_token)],
+        summary="List Caregiver Contacts",
+        tags=["Caretaker"]
+    )
+    def caretaker_list_contacts():
+        """Lists caregiver emergency contacts."""
+        contacts = context_memory.list_contacts()
+        return [c.to_dict() for c in contacts]
+
+    @app.post(
+        "/api/caretaker/contacts",
+        dependencies=[Depends(verify_token)],
+        summary="Add Caregiver Contact",
+        tags=["Caretaker"]
+    )
+    def caretaker_add_contact(payload: ContactAddRequest):
+        """Adds a new emergency contact for SMS alerts."""
+        contact = CaregiverContact(
+            id=None,
+            name=payload.name,
+            relationship=payload.relationship,
+            phone_number=payload.phone_number,
+            is_primary_emergency=payload.is_primary_emergency or False,
+        )
+        c_id = context_memory.add_contact(contact)
+        return {"status": "created", "contact_id": c_id}
+
+    @app.post(
+        "/api/caretaker/emergency/trigger",
+        dependencies=[Depends(verify_token)],
+        summary="Trigger Emergency 10s Pre-Alert Countdown",
+        tags=["Caretaker"]
+    )
+    def caretaker_emergency_trigger(payload: Optional[EmergencyTriggerRequest] = None):
+        """Initiates the 10-second audible countdown before sending emergency SMS to family."""
+        inc_type = payload.incident_type if payload else "manual_panic"
+        reason = payload.reason if payload else "User triggered emergency assistance"
+        dur = payload.duration_seconds if payload and payload.duration_seconds else 10.0
+
+        coords = None
+        rep = location_manager.get_report()
+        if rep and rep.latitude and rep.longitude:
+            coords = (rep.latitude, rep.longitude)
+
+        state = autonomy_supervisor.trigger_emergency_countdown(
+            incident_type=inc_type,
+            reason=reason,
+            coordinates=coords,
+            duration_seconds=dur,
+        )
+        return {
+            "status": "countdown_started",
+            "duration_seconds": state.duration_seconds,
+            "remaining_seconds": state.remaining_seconds,
+            "incident_type": state.incident_type,
+        }
+
+    @app.post(
+        "/api/caretaker/emergency/cancel",
+        dependencies=[Depends(verify_token)],
+        summary="Cancel Active Emergency Countdown",
+        tags=["Caretaker"]
+    )
+    def caretaker_emergency_cancel(payload: Optional[EmergencyCancelRequest] = None):
+        """Cancels active emergency pre-alert before SMS dispatch."""
+        reason = payload.reason if payload else "user_ok"
+        ok = autonomy_supervisor.cancel_emergency(cancel_reason=reason)
+        return {"status": "cancelled" if ok else "not_active", "success": ok}
+
+    @app.get(
+        "/api/caretaker/emergency/status",
+        dependencies=[Depends(verify_token)],
+        summary="Get Emergency Countdown & Dispatch Status",
+        tags=["Caretaker"]
+    )
+    def caretaker_emergency_status():
+        """Returns active countdown remaining seconds or dispatch result."""
+        dispatched, state = autonomy_supervisor.tick_emergency_countdown()
+        status_dict = autonomy_supervisor.get_status()
+        status_dict["dispatched_now"] = dispatched
+        return status_dict
+
+    @app.get(
+        "/api/caretaker/audit",
+        dependencies=[Depends(verify_token)],
+        summary="Get Tamper-Evident Action Audit Trail",
+        tags=["Caretaker"]
+    )
+    def caretaker_get_audit(limit: int = 50):
+        """Returns tamper-evident action audit trail with SHA-256 hash chains."""
+        return context_memory.get_audit_trail(limit=limit)
 
     return app
 
