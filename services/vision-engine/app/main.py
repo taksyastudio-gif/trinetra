@@ -6,6 +6,7 @@ Incorporates monotonic frame headers, session tracking, and structured error res
 """
 
 from contextlib import asynccontextmanager
+import base64
 import dataclasses
 import json
 import logging
@@ -37,6 +38,11 @@ from app.camera.adapter import (
     OpenCVCameraAdapter,
 )
 from app.capabilities import CurrencyService, FaceRegistry, OCRService, SceneService
+from app.assistant import AssistantDialogueManager
+from trinetra_core.events import EventBus, Event, EventType, EventCategory, EventPriority
+from trinetra_core.capabilities import DeviceCapabilities, DeviceTier
+from trinetra_core.lite_mode import LiteModeController
+import time
 
 from pathlib import Path
 
@@ -45,6 +51,11 @@ from app.audio.speaker import (
     SpeechItem,
     SpeechManager,
     SpeechPriority,
+)
+from app.audio.stt import (
+    OfflineSpeechRecognizer,
+    SUPPORTED_VOICE_COMMANDS,
+    offline_stt_engine,
 )
 from app.detection.engine import (
     BoundingBox,
@@ -143,6 +154,7 @@ class CameraDeviceResponse(BaseModel):
 
 class CameraStartRequest(BaseModel):
     camera_index: Optional[Union[int, str]] = None
+    mirror_mode: Optional[bool] = None
 
 
 class SpeechAnnounceRequest(BaseModel):
@@ -150,6 +162,11 @@ class SpeechAnnounceRequest(BaseModel):
     priority: Optional[str] = "spatial_navigation"
     interrupt: Optional[bool] = False
     language: Optional[str] = None
+
+
+class SetTierRequest(BaseModel):
+    tier: str = Field(description="'full', 'standard', 'lite', or 'auto'")
+
 
 
 class SpeechMuteRequest(BaseModel):
@@ -197,6 +214,15 @@ class DetectionItemSchema(BaseModel):
     sector: str
 
 
+class GroundHazardSchema(BaseModel):
+    detected: bool = False
+    hazard_type: str = "none"
+    severity: str = "none"
+    confidence: float = 0.0
+    message: str = ""
+    bounding_box: Optional[List[float]] = None
+
+
 class DetectionResultResponse(BaseModel):
     frame_id: int
     timestamp: float
@@ -204,6 +230,9 @@ class DetectionResultResponse(BaseModel):
     inference_time_ms: float
     model_name: str
     e2e_latency_ms: float = 0.0
+    ground_hazard: Optional[GroundHazardSchema] = None
+    auto_currency: Optional[Dict[str, Any]] = None
+    sign_gesture: Optional[Dict[str, Any]] = None
 
 
 class DetectionStatusResponse(BaseModel):
@@ -251,9 +280,14 @@ class LocationConfigureRequest(BaseModel):
     manual_accuracy_meters: Optional[float] = None
 
 
+class LocationBookmarkRequest(BaseModel):
+    label: Optional[str] = None
+
+
 class SceneQueryRequest(BaseModel):
     question: str = Field(min_length=1, max_length=300)
     speak: bool = False
+    cloud_consent: bool = False
 
 
 class CurrencyIdentifyRequest(BaseModel):
@@ -266,6 +300,22 @@ class OCRReadRequest(BaseModel):
 
 class FaceRecognizeRequest(BaseModel):
     speak: bool = False
+
+
+class SpeechTranscribeRequest(BaseModel):
+    audio_base64: Optional[str] = None
+    transcript: Optional[str] = None
+    format: Optional[str] = "wav"
+
+
+class SpeechTranscribeResponse(BaseModel):
+    status: str
+    transcript: str
+    command: str
+    confidence: float
+    message: str
+    duration_sec: float = 0.0
+    is_offline: bool = True
 
 
 class CapabilityStatusResponse(BaseModel):
@@ -338,8 +388,18 @@ class CameraManager:
             if "perception_pipeline" in globals() and perception_pipeline is not None:
                 perception_pipeline.reset_session()
 
+    def set_mirror_mode(self, enabled: bool) -> None:
+        with self._lock:
+            if hasattr(self.adapter, "horizontal_flip"):
+                self.adapter.horizontal_flip = bool(enabled)
 
-DEFAULT_MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "yolox_nano.onnx"
+    def get_mirror_mode(self) -> bool:
+        with self._lock:
+            return bool(getattr(self.adapter, "horizontal_flip", False))
+
+
+DEFAULT_TRINETRA_MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "trinetra_nano.onnx"
+DEFAULT_MODEL_PATH = DEFAULT_TRINETRA_MODEL_PATH if DEFAULT_TRINETRA_MODEL_PATH.is_file() else (Path(__file__).resolve().parent.parent / "models" / "yolox_nano.onnx")
 EXPECTED_MODEL_SHA256 = "c789161ed43c8269fcd4e67c67eeeb4e80c622da2eb296a20bc6007bd18a0b7d"
 DEFAULT_YUNET_PATH = Path(__file__).resolve().parent.parent / "models" / "face_detection_yunet_2023mar.onnx"
 EXPECTED_YUNET_SHA256 = "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4"
@@ -358,7 +418,12 @@ def get_default_detection_fusion() -> Optional[Any]:
             face_detector = YuNetFaceDetector(model_path=str(DEFAULT_YUNET_PATH))
             if face_detector.is_ready():
                 logger.info(f"Loaded verified YuNet face detection model from {DEFAULT_YUNET_PATH}")
-                return DetectionFusion(face_detector=face_detector, enabled=True)
+                currency_path = Path(__file__).resolve().parent.parent / "models" / "currency" / "v1" / "currency_classifier.onnx"
+                return DetectionFusion(
+                    face_detector=face_detector,
+                    currency_classifier_path=str(currency_path) if currency_path.is_file() else None,
+                    enabled=True
+                )
         except Exception as exc:
             logger.warning(f"Failed to load YuNet face detection model from {DEFAULT_YUNET_PATH}: {exc}")
     return None
@@ -383,15 +448,26 @@ def get_default_detection_engine() -> DetectionEngine:
         return OnnxDetectionEngine(model_path=env_model)
 
     default_model = DEFAULT_MODEL_PATH
-    expected_sha = EXPECTED_MODEL_SHA256
+    is_trinetra_model = (default_model.name == "trinetra_nano.onnx")
+    meta_path = default_model.parent / "metadata.json"
+    custom_classes = None
+    if is_trinetra_model and meta_path.is_file():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            custom_classes = meta.get("classes")
+        except Exception:
+            pass
+
+    expected_sha = None if is_trinetra_model else EXPECTED_MODEL_SHA256
     if default_model.is_file():
-        logger.info(f"Loading verified YOLOX-Nano ONNX model from {default_model}")
+        logger.info(f"Loading verified model from {default_model} (Trinetra: {is_trinetra_model})")
         try:
             return OnnxDetectionEngine(
                 model_path=str(default_model),
                 expected_sha256=expected_sha,
-                confidence_threshold=0.35,
-                iou_threshold=0.45
+                confidence_threshold=0.30 if is_trinetra_model else 0.35,
+                iou_threshold=0.45,
+                classes=custom_classes
             )
         except Exception as exc:
             logger.error(f"Failed to load ONNX model from {default_model}: {exc}")
@@ -416,9 +492,12 @@ speech_manager = SpeechManager()
 location_manager = LocationManager()
 incident_recorder = IncidentRecorder(speech_manager=speech_manager)
 scene_service = SceneService()
+assistant_manager = AssistantDialogueManager()
 currency_service = CurrencyService()
 ocr_service = OCRService()
 face_registry = FaceRegistry()
+event_bus = EventBus()
+lite_mode_controller = LiteModeController(event_bus=event_bus)
 
 perception_pipeline = PerceptionPipeline(
     speech_manager=speech_manager,
@@ -509,6 +588,7 @@ def create_app(
         camera_manager.set_adapter(FakeCameraAdapter())
     if speech_backend is not None:
         speech_manager.backend = speech_backend
+        speech_manager.start()
     if location_provider is not None:
         location_manager.set_provider(location_provider)
     if custom_incident_recorder is not None:
@@ -567,6 +647,7 @@ def create_app(
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
+        allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$",
         allow_credentials=True,
         allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
         allow_headers=["*"],
@@ -699,6 +780,8 @@ def create_app(
         Optionally switches to requested camera_index before starting.
         """
         requested_index = payload.camera_index if payload else None
+        if payload and payload.mirror_mode is not None:
+            camera_manager.set_mirror_mode(payload.mirror_mode)
 
         with camera_manager._lock:
             current_idx = getattr(camera_manager.adapter, "camera_index", 0)
@@ -759,6 +842,28 @@ def create_app(
             message="Camera stream stopped and hardware resource released.",
             session_id=None
         )
+
+    @app.get(
+        "/api/camera/mirror",
+        dependencies=[Depends(verify_token)],
+        summary="Get Camera Mirror Mode",
+        tags=["Camera"]
+    )
+    def get_camera_mirror():
+        """Returns whether horizontal mirror mode is active (useful for front-facing laptop webcams)."""
+        return {"mirror_mode": camera_manager.get_mirror_mode()}
+
+    @app.post(
+        "/api/camera/mirror",
+        dependencies=[Depends(verify_token)],
+        summary="Set Camera Mirror Mode",
+        tags=["Camera"]
+    )
+    def set_camera_mirror(payload: Dict[str, Any]):
+        """Dynamically toggles horizontal mirror mode."""
+        mirror = bool(payload.get("mirror_mode", False))
+        camera_manager.set_mirror_mode(mirror)
+        return {"status": "ok", "mirror_mode": camera_manager.get_mirror_mode()}
 
     @app.get(
         "/api/camera/frame",
@@ -968,6 +1073,50 @@ def create_app(
             nepali_voice_available=info.get("nepali_voice_available", False)
         )
 
+    @app.post(
+        "/api/speech/transcribe",
+        response_model=SpeechTranscribeResponse,
+        dependencies=[Depends(verify_token)],
+        summary="Transcribe Speech & Detect Voice Command",
+        tags=["Speech"]
+    )
+    def speech_transcribe(payload: SpeechTranscribeRequest):
+        """
+        Local-first offline speech transcription & voice command detection.
+        Accepts base64 encoded audio bytes (WAV/PCM) or text transcript.
+        Matches commands: currency, scene, ocr, bookmark, mute, help.
+        """
+        raw_audio = None
+        if payload.audio_base64:
+            try:
+                raw_audio = base64.b64decode(payload.audio_base64)
+            except Exception:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid base64 encoded audio payload."
+                )
+
+        res = offline_stt_engine.transcribe(
+            audio_bytes=raw_audio,
+            text_transcript=payload.transcript
+        )
+        return SpeechTranscribeResponse(**res.to_dict())
+
+    @app.get(
+        "/api/speech/stt/status",
+        dependencies=[Depends(verify_token)],
+        summary="Get Offline STT Status",
+        tags=["Speech"]
+    )
+    def speech_stt_status():
+        """Returns readiness of the local offline speech recognition engine."""
+        return {
+            "status": "ready",
+            "engine": "offline_acoustic_kws",
+            "offline": True,
+            "supported_commands": SUPPORTED_VOICE_COMMANDS
+        }
+
     # =========================================================================
     # Object Detection & Perception Endpoints
     # =========================================================================
@@ -1048,7 +1197,10 @@ def create_app(
             ],
             inference_time_ms=latest.inference_time_ms,
             model_name=latest.model_name,
-            e2e_latency_ms=getattr(latest, "e2e_latency_ms", 0.0)
+            e2e_latency_ms=getattr(latest, "e2e_latency_ms", 0.0),
+            ground_hazard=getattr(latest, "ground_hazard", None),
+            auto_currency=getattr(latest, "auto_currency", None),
+            sign_gesture=getattr(latest, "sign_gesture", None)
         )
 
     # =========================================================================
@@ -1062,7 +1214,7 @@ def create_app(
         return CapabilityStatusResponse(
             scene={"available": True, "provider": "local_detection"},
             currency=currency_service.status(),
-            ocr={"available": True, "provider": "pytesseract_optional", "language": ocr_service.language},
+            ocr={"available": ocr_service.is_available(), "provider": "tesseract_local", "language": ocr_service.language},
             faces={"available": False, "registered_people": len(face_registry.list_people()), "local_only": True},
         )
 
@@ -1075,25 +1227,66 @@ def create_app(
                 detections = perception_pipeline.engine.detect(packet.jpeg_bytes, packet.frame_id).detections
             except Exception:
                 logger.warning("On-demand scene detector failed", exc_info=True)
-        result = scene_service.describe(payload.question, detections)
+        if not detections and perception_pipeline:
+            latest = perception_pipeline.get_latest_result()
+            if latest and latest.detections:
+                detections = latest.detections
+        result = assistant_manager.query(
+            question=payload.question,
+            detections=detections,
+            jpeg_bytes=packet.jpeg_bytes,
+            cloud_consent=payload.cloud_consent,
+        )
         if payload.speak:
-            speech_manager.announce(result["text"], priority=SpeechPriority.INFORMATIONAL, language="ne")
+            speech_manager.announce(
+                result["text"],
+                priority=SpeechPriority.CRITICAL_HAZARD,
+                interrupt=True,
+                cooldown=0.0,
+                language="ne"
+            )
         return result
 
     @app.post("/api/currency/identify", dependencies=[Depends(verify_token)], tags=["Currency"])
     def currency_identify(payload: CurrencyIdentifyRequest):
         packet = capture_capability_frame()
         result = currency_service.identify(packet.jpeg_bytes)
+        if result.get("status") == "identified":
+            assistant_manager.update_telemetry(currency={
+                "denomination": result.get("denomination"),
+                "nepali_text": result.get("spoken_text") or result.get("message"),
+                "confidence": result.get("confidence"),
+                "time": time.time(),
+            })
         if payload.speak:
-            speech_manager.announce(result["message"], priority=SpeechPriority.INFORMATIONAL, language="ne")
+            spoken_text = result.get("spoken_text") or result["message"]
+            speech_manager.announce(
+                spoken_text,
+                priority=SpeechPriority.CRITICAL_HAZARD,
+                interrupt=True,
+                cooldown=0.0,
+                language="ne"
+            )
         return result
 
     @app.post("/api/ocr/read", dependencies=[Depends(verify_token)], tags=["OCR"])
     def ocr_read(payload: OCRReadRequest):
         packet = capture_capability_frame()
         result = ocr_service.read(packet.jpeg_bytes)
+        if result.get("text"):
+            assistant_manager.update_telemetry(ocr={
+                "text": result.get("text"),
+                "time": time.time(),
+            })
         if payload.speak:
-            speech_manager.announce(result["text"] or result["message"], priority=SpeechPriority.INFORMATIONAL, language="ne")
+            spoken_text = result["text"] or result["message"] or "यस फ्रेममा कुनै स्पष्ट लेख फेला परेन।"
+            speech_manager.announce(
+                spoken_text,
+                priority=SpeechPriority.CRITICAL_HAZARD,
+                interrupt=True,
+                cooldown=0.0,
+                language="ne"
+            )
         return result
 
     @app.post("/api/faces/recognize", dependencies=[Depends(verify_token)], tags=["Faces"])
@@ -1101,7 +1294,14 @@ def create_app(
         packet = capture_capability_frame()
         result = face_registry.recognize(packet.jpeg_bytes)
         if payload.speak:
-            speech_manager.announce(result["message"], priority=SpeechPriority.INFORMATIONAL, language="ne")
+            spoken_text = result.get("spoken_text") or result["message"]
+            speech_manager.announce(
+                spoken_text,
+                priority=SpeechPriority.CRITICAL_HAZARD,
+                interrupt=True,
+                cooldown=0.0,
+                language="ne"
+            )
         return result
 
     @app.get("/api/faces", dependencies=[Depends(verify_token)], tags=["Faces"])
@@ -1158,6 +1358,57 @@ def create_app(
             language=lang
         )
         return record.to_dict()
+
+    @app.post(
+        "/api/incident/prealert",
+        dependencies=[Depends(verify_token)],
+        summary="Start 10-Second Caretaker Emergency Countdown Pre-alert",
+        tags=["Incident"]
+    )
+    def incident_start_prealert(payload: Optional[IncidentCaptureRequest] = None):
+        if not camera_manager.adapter.is_active():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Camera is not active. Start camera session before triggering incident prealert."
+            )
+        try:
+            packet = camera_manager.adapter.capture_packet()
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Frame acquisition failed during incident prealert: {exc}"
+            )
+        notes = payload.notes if payload and payload.notes else "Emergency Countdown Pre-alert"
+        lang = payload.language if payload and payload.language else perception_pipeline.language
+        latest_detections = perception_pipeline.get_latest_result()
+        loc_report = location_manager.get_report().to_dict()
+
+        return incident_recorder.trigger_prealert(
+            packet=packet,
+            detection_result=latest_detections,
+            location_data=loc_report,
+            notes=notes,
+            countdown_seconds=10,
+            language=lang,
+        )
+
+    @app.post(
+        "/api/incident/cancel",
+        dependencies=[Depends(verify_token)],
+        summary="Cancel Active Incident Countdown Pre-alert",
+        tags=["Incident"]
+    )
+    def incident_cancel():
+        return incident_recorder.cancel_prealert()
+
+    @app.get(
+        "/api/incident/prealert/status",
+        dependencies=[Depends(verify_token)],
+        summary="Get Active Incident Pre-alert Countdown Status",
+        tags=["Incident"]
+    )
+    def incident_prealert_status():
+        return incident_recorder.get_prealert_status()
 
     @app.get(
         "/api/incident/list",
@@ -1267,6 +1518,82 @@ def create_app(
 
         rep = location_manager.get_report()
         return rep.to_dict()
+
+    @app.post(
+        "/api/location/bookmark",
+        dependencies=[Depends(verify_token)],
+        summary="Save Offline Location Bookmark",
+        tags=["Location"]
+    )
+    def location_bookmark(payload: Optional[LocationBookmarkRequest] = None):
+        """Saves current location into local offline bookmarks and speaks confirmation."""
+        label = payload.label if payload else None
+        bm = location_manager.save_bookmark(label)
+        bm_label = bm.get("label", "स्थान")
+        text = f"तपाईंको {bm_label} सुरक्षित गरियो।"
+        speech_manager.announce(
+            text=text,
+            priority=SpeechPriority.CRITICAL_HAZARD,
+            interrupt=True,
+            cooldown=0.0,
+            language="ne",
+        )
+        return {"status": "saved", "bookmark": bm, "message": text}
+
+    @app.get(
+        "/api/location/bookmarks",
+        dependencies=[Depends(verify_token)],
+        summary="List Offline Location Bookmarks",
+        tags=["Location"]
+    )
+    def location_list_bookmarks():
+        """Lists all offline location bookmarks."""
+        return location_manager.get_bookmarks()
+
+    @app.get(
+        "/api/system/tier",
+        dependencies=[Depends(verify_token)],
+        summary="Get Operating Performance Tier & Lite Mode Telemetry",
+        tags=["System"]
+    )
+    def system_get_tier():
+        """Returns active device tier, target FPS, and performance throttling telemetry."""
+        return lite_mode_controller.get_status()
+
+    @app.post(
+        "/api/system/tier/set",
+        dependencies=[Depends(verify_token)],
+        summary="Configure Operating Performance Tier",
+        tags=["System"]
+    )
+    def system_set_tier(payload: SetTierRequest):
+        """Forces operational tier or resets to 'auto' dynamic negotiation."""
+        t_str = payload.tier.lower().strip()
+        if t_str == "auto":
+            lite_mode_controller.force_tier(None)
+        elif t_str in ("lite", "standard", "full"):
+            tier_enum = DeviceTier(t_str)
+            lite_mode_controller.force_tier(tier_enum)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid tier '{payload.tier}'. Must be 'full', 'standard', 'lite', or 'auto'."
+            )
+        return {
+            "status": "updated",
+            "tier_status": lite_mode_controller.get_status()
+        }
+
+    @app.get(
+        "/api/events/recent",
+        dependencies=[Depends(verify_token)],
+        summary="List Recent Cryptographically Chained Events",
+        tags=["System"]
+    )
+    def system_get_events(limit: int = 50):
+        """Returns recent events from the in-memory bus with SHA-256 hash chains."""
+        events = event_bus.get_history(limit=limit)
+        return [e.to_dict() for e in events]
 
     return app
 
