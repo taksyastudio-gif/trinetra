@@ -8,6 +8,14 @@ from trinetra_core.hal.location import LocationAdapterInterface
 from trinetra_core.hal.comms import CommsAdapterInterface
 from trinetra_core.hal.storage import StorageAdapterInterface
 from trinetra_core.hal.sensors import SensorsAdapterInterface
+from trinetra_core.hal.wearable import (
+    WearableDeviceInterface,
+    ESP32CamWearableAdapter,
+    SmartGlassesAdapter,
+    HapticLocation,
+    HapticPattern,
+    WearableCapabilities,
+)
 
 __all__ = [
     "CameraAdapterInterface",
@@ -17,4 +25,10 @@ __all__ = [
     "CommsAdapterInterface",
     "StorageAdapterInterface",
     "SensorsAdapterInterface",
+    "WearableDeviceInterface",
+    "ESP32CamWearableAdapter",
+    "SmartGlassesAdapter",
+    "HapticLocation",
+    "HapticPattern",
+    "WearableCapabilities",
 ]

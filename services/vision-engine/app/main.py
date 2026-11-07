@@ -42,6 +42,13 @@ from app.qr_payment import QRPaymentService
 from app.ocr_enhancer import BusRouteMatcher, NepaliNumeralParser
 from app.assistant import AssistantDialogueManager
 from app.culture import BikramSambatConverter, NepaliPhrasing
+from app.sensors.device_health import DeviceHealthSupervisor
+from trinetra_core.hal.wearable import (
+    ESP32CamWearableAdapter,
+    SmartGlassesAdapter,
+    HapticLocation,
+    HapticPattern,
+)
 from trinetra_core.events import EventBus, Event, EventType, EventCategory, EventPriority
 from trinetra_core.capabilities import DeviceCapabilities, DeviceTier
 from trinetra_core.lite_mode import LiteModeController
@@ -229,6 +236,19 @@ class AssistantChatRequest(BaseModel):
     message: str
     speak: Optional[bool] = False
     cloud_consent: Optional[bool] = False
+
+
+class DeviceTelemetryRequest(BaseModel):
+    battery_pct: Optional[float] = None
+    is_charging: Optional[bool] = None
+    temp_c: Optional[float] = None
+    frame_drop_ratio: Optional[float] = None
+
+
+class WearableHapticRequest(BaseModel):
+    location: Optional[str] = "dual"
+    pattern: Optional[str] = "urgent_pulse"
+    intensity: Optional[float] = 1.0
 
 
 
@@ -578,6 +598,15 @@ def _speak_caretaker_prompt(text: str, interrupt: bool = False):
         interrupt=interrupt,
         language="ne",
     )
+
+device_health_supervisor = DeviceHealthSupervisor(
+    lite_controller=lite_mode_controller,
+    event_bus=event_bus,
+    speech_callback=_speak_caretaker_prompt,
+)
+wearable_adapter = ESP32CamWearableAdapter(
+    stream_url=os.environ.get("TRINETRA_ESP32_STREAM_URL", "http://192.168.4.1/stream")
+)
 
 autonomy_supervisor = AutonomySupervisor(
     memory=context_memory,
@@ -2013,6 +2042,75 @@ def create_app(
             )
 
         return result
+
+    @app.get(
+        "/api/device/health",
+        dependencies=[Depends(verify_token)],
+        summary="Get Device Battery & Thermal Health",
+        tags=["Device"]
+    )
+    def get_device_health():
+        """Returns battery status, temperature, thermal throttling flag, and active performance tier."""
+        return device_health_supervisor.get_health_report()
+
+    @app.post(
+        "/api/device/telemetry",
+        dependencies=[Depends(verify_token)],
+        summary="Ingest Client Telemetry",
+        tags=["Device"]
+    )
+    def update_device_telemetry(payload: DeviceTelemetryRequest):
+        """Allows mobile PWA or wearable clients to report battery and thermal telemetry."""
+        return device_health_supervisor.update_telemetry(
+            battery_pct=payload.battery_pct,
+            is_charging=payload.is_charging,
+            temp_c=payload.temp_c,
+            frame_drop_ratio=payload.frame_drop_ratio,
+        )
+
+    @app.get(
+        "/api/wearable/status",
+        dependencies=[Depends(verify_token)],
+        summary="Get Connected Wearable Hardware Status",
+        tags=["Wearable"]
+    )
+    def get_wearable_status():
+        """Returns connected wearable hardware capabilities and link quality."""
+        caps = wearable_adapter.get_capabilities()
+        return {
+            "device_model": caps.device_model,
+            "firmware_version": caps.firmware_version,
+            "has_camera": caps.has_camera,
+            "has_haptics": caps.has_haptics,
+            "is_active": wearable_adapter.is_active(),
+            "connection_quality": wearable_adapter.get_connection_quality(),
+            "stream_url": wearable_adapter.stream_url,
+        }
+
+    @app.post(
+        "/api/wearable/haptic",
+        dependencies=[Depends(verify_token)],
+        summary="Dispatch Directional Haptic Pulse",
+        tags=["Wearable"]
+    )
+    def trigger_wearable_haptic(payload: WearableHapticRequest):
+        """Sends tactile vibration pulses to wearable temples for silent directional cues."""
+        try:
+            loc = HapticLocation(payload.location or "dual")
+        except ValueError:
+            loc = HapticLocation.DUAL
+
+        try:
+            pat = HapticPattern(payload.pattern or "urgent_pulse")
+        except ValueError:
+            pat = HapticPattern.URGENT_PULSE
+
+        ok = wearable_adapter.trigger_haptic(
+            location=loc,
+            pattern=pat,
+            intensity=payload.intensity or 1.0,
+        )
+        return {"status": "ok" if ok else "failed", "location": loc.value, "pattern": pat.value}
 
     return app
 

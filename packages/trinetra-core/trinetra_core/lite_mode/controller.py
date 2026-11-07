@@ -73,6 +73,10 @@ class LiteModeController:
         self._forced_tier = tier
         self._recalculate_profile(reason="manual_force_tier")
 
+    def set_tier(self, tier: Optional[DeviceTier]) -> None:
+        """Alias for force_tier."""
+        self.force_tier(tier)
+
     def record_inference_latency(self, latency_ms: float) -> None:
         """Record pipeline execution time and auto-throttle if budget exceeded."""
         self._latencies.append(latency_ms)
