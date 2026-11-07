@@ -6,14 +6,17 @@ and routes English speech to Windows SAPI, preserving priority preemption and in
 
 import json
 import logging
+import math
 import os
 from pathlib import Path
+import struct
 import subprocess
 import sys
 import tempfile
 import threading
 import time
 from typing import Any, Dict, List, Optional, Set
+import wave
 
 from app.audio.speaker import SpeechBackend, WindowsSapiSpeechBackend
 
@@ -96,6 +99,7 @@ class PiperSpeechBackend(SpeechBackend):
         self._managed_files: List[Path] = []
         self._max_managed_files = 5
         self._files_lock = threading.Lock()
+        self._speech_rate: float = 1.0
 
     def is_ready(self) -> bool:
         """Returns True if the backend has valid binary and model paths."""
@@ -142,6 +146,44 @@ class PiperSpeechBackend(SpeechBackend):
                 self._worker_proc = None
                 return False
 
+    def _normalize_wav(self, wav_path: str, target_peak_ratio: float = 0.88) -> None:
+        """
+        Normalizes peak amplitude in 16-bit PCM WAV to prevent clipping and distortion.
+        Safely scales samples if peak exceeds target threshold.
+        """
+        try:
+            if not os.path.exists(wav_path):
+                return
+            with wave.open(wav_path, "rb") as wf:
+                params = wf.getparams()
+                if params.sampwidth != 2:
+                    return
+                frames = wf.readframes(params.nframes)
+            
+            samples = list(struct.unpack(f"<{params.nframes}h", frames))
+            if not samples:
+                return
+            
+            max_amp = max(abs(s) for s in samples)
+            target_max = int(32767 * target_peak_ratio)
+            if max_amp > target_max and max_amp > 0:
+                scale = target_max / float(max_amp)
+                samples = [int(s * scale) for s in samples]
+                packed = struct.pack(f"<{len(samples)}h", *samples)
+                with wave.open(wav_path, "wb") as wf:
+                    wf.setparams(params)
+                    wf.writeframes(packed)
+        except Exception as exc:
+            logger.debug(f"WAV normalization skipped on {wav_path}: {exc}")
+
+    @property
+    def speech_rate(self) -> float:
+        return self._speech_rate
+
+    @speech_rate.setter
+    def speech_rate(self, value: float) -> None:
+        self._speech_rate = max(0.5, min(2.5, float(value)))
+
     def speak(self, text: str, interrupt: bool = False, language: Optional[str] = None) -> bool:
         """
         Synthesizes and speaks text using Piper.
@@ -170,7 +212,12 @@ class PiperSpeechBackend(SpeechBackend):
         # Neural synthesis via persistent piper.exe
         req_id = f"utt_{int(time.time() * 1000)}"
         output_target_path = str(self._temp_dir / f"{req_id}.wav")
-        req_payload = json.dumps({"text": clean_text, "output_file": output_target_path}) + "\n"
+        length_scale = round(1.0 / max(0.5, min(2.5, self._speech_rate)), 2)
+        req_payload = json.dumps({
+            "text": clean_text,
+            "output_file": output_target_path,
+            "length_scale": length_scale,
+        }) + "\n"
 
         target_wav: Optional[str] = None
         with self._worker_lock:
@@ -215,6 +262,9 @@ class PiperSpeechBackend(SpeechBackend):
 
         if self._stop_event.is_set():
             return False
+
+        # Automatically normalize audio to prevent digital clipping / distortion
+        self._normalize_wav(wav_path, target_peak_ratio=0.88)
 
         if is_managed:
             self._register_managed_file(Path(wav_path))
@@ -368,6 +418,18 @@ class CompositeSpeechBackend(SpeechBackend):
             self.piper_backend = PiperSpeechBackend() if is_piper_available() else None
         else:
             self.piper_backend = piper_backend
+
+    @property
+    def speech_rate(self) -> float:
+        return getattr(self, "_speech_rate", 1.0)
+
+    @speech_rate.setter
+    def speech_rate(self, value: float) -> None:
+        self._speech_rate = max(0.5, min(2.5, float(value)))
+        if hasattr(self.sapi_backend, "speech_rate"):
+            self.sapi_backend.speech_rate = self._speech_rate
+        if self.piper_backend and hasattr(self.piper_backend, "speech_rate"):
+            self.piper_backend.speech_rate = self._speech_rate
 
     def speak(self, text: str, interrupt: bool = False, language: Optional[str] = None) -> bool:
         """Routes text to the appropriate backend based on explicit language or Devanagari Unicode detection."""

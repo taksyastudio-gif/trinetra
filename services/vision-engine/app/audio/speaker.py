@@ -65,6 +65,14 @@ class SpeechBackend(ABC):
         """Returns True if a voice for the specified language code is available."""
         pass
 
+    @property
+    def speech_rate(self) -> float:
+        return getattr(self, "_speech_rate", 1.0)
+
+    @speech_rate.setter
+    def speech_rate(self, value: float) -> None:
+        self._speech_rate = max(0.5, min(2.5, float(value)))
+
     def shutdown(self) -> None:
         """Cleans up any long-lived resources or worker processes."""
         pass
@@ -352,13 +360,35 @@ class SpeechManager:
 
         self._muted: bool = False
         self._paused: bool = False
-        self._running: bool = True
+        self._running: bool = False
+        self._speech_rate: float = 1.0
         self._default_language: str = norm
         self._audio_failure_count: int = 0
         self._last_audio_error: Optional[str] = None
+        self._worker_thread: Optional[threading.Thread] = None
 
-        self._worker_thread = threading.Thread(target=self._speech_worker, daemon=True)
-        self._worker_thread.start()
+        self.start()
+
+    def start(self) -> None:
+        """Starts or restarts the speech worker if not running."""
+        with self._state_lock:
+            self._running = True
+            if self._worker_thread is None or not self._worker_thread.is_alive():
+                self._worker_thread = threading.Thread(target=self._speech_worker, daemon=True)
+                self._worker_thread.start()
+
+    @property
+    def speech_rate(self) -> float:
+        with self._state_lock:
+            return self._speech_rate
+
+    @speech_rate.setter
+    def speech_rate(self, value: float) -> None:
+        clamped = max(0.5, min(2.5, float(value)))
+        with self._state_lock:
+            self._speech_rate = clamped
+            if hasattr(self.backend, "speech_rate"):
+                self.backend.speech_rate = clamped
 
     @property
     def language(self) -> str:
@@ -393,6 +423,10 @@ class SpeechManager:
         with self._state_lock:
             if self._muted:
                 return False
+            if not self._running or self._worker_thread is None or not self._worker_thread.is_alive():
+                self._running = True
+                self._worker_thread = threading.Thread(target=self._speech_worker, daemon=True)
+                self._worker_thread.start()
 
         raw_lang = (language or self.language).strip().lower()
         try:

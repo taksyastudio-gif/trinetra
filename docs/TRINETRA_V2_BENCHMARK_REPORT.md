@@ -1,5 +1,5 @@
 # TRINETRA v2 — Empirical Benchmark Report & Measured Ground Truth
-**Generated:** 2026-11-07 13:57:04 UTC  
+**Generated:** 2026-11-07 14:36:32 UTC  
 **Framework:** Code-Driven Reproducible Benchmark Runner (`benchmarks/run_all_benchmarks.py`)  
 **Principle:** 100% Measured Metrics (No Vanity Scores, No Synthetic Fakes)  
 
@@ -9,8 +9,8 @@
 
 | Scenario | Result | Latency (ms) | Key Telemetry / Output |
 |---|:---:|:---:|---|
-| **Open Drain / Pothole Avoidance** | ✅ PASS | 8.35 ms | अगाडि जमिनमा खाल्डो छ, होसियार! |
-| **Public Transit & Bus Board Matching** | ✅ PASS | 0.25 ms | अगाडि रत्नपार्क जाने साझा यातायात  नम्बर 4भेटियो। |
+| **Open Drain / Pothole Avoidance** | ✅ PASS | 10.74 ms | अगाडि जमिनमा खाल्डो छ, होसियार! |
+| **Public Transit & Bus Board Matching** | ✅ PASS | 0.22 ms | अगाडि रत्नपार्क जाने साझा यातायात  नम्बर 4भेटियो। |
 | **Retail QR Code Audio Readout** | ✅ PASS | 0.05 ms | पसलको फोनपे (FonePay) फेला पर्यो: Himalayan Bakery। |
 | **Trip & Fall 10s Cancellation Window** | ✅ PASS | — ms | Resolved:  |
 | **Thermal Throttling & Lite Mode Enforcement** | ✅ PASS | — ms | Resolved: lite |
@@ -21,8 +21,8 @@
 
 | Hazard Domain | Recall (%) | False Positive (%) | Avg Latency (ms) | Target Operating Frequency |
 |---|:---:|:---:|:---:|:---:|
-| **Open Drains & Potholes (Bottom Corridor)** | 100.0% | 0.0% | 0.63 ms | Continuous 30 Hz |
-| **Low Dangling Wires (Upper Clearance)** | 100.0% | 0.0% | 5.62 ms | Periodic 5 Hz |
+| **Open Drains & Potholes (Bottom Corridor)** | 100.0% | 0.0% | 0.61 ms | Continuous 30 Hz |
+| **Low Dangling Wires (Upper Clearance)** | 100.0% | 0.0% | 5.14 ms | Periodic 5 Hz |
 
 ---
 
@@ -30,7 +30,7 @@
 
 | Service | Accuracy (%) | Avg Latency (ms) | Supported Protocols / Destinations |
 |---|:---:|:---:|---|
-| **Retail QR Payments** | 100.0% | 0.09 ms | FonePay, eSewa, Khalti, NepalQR |
+| **Retail QR Payments** | 100.0% | 0.06 ms | FonePay, eSewa, Khalti, NepalQR |
 | **Public Bus Route Matching** | 100% | 0.25 ms | Ratna Park, Lagankhel, Kalanki, Chabahil, Sajha |
 
 ---

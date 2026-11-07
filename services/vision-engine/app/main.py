@@ -41,6 +41,7 @@ from app.capabilities import CurrencyService, FaceRegistry, OCRService, SceneSer
 from app.qr_payment import QRPaymentService
 from app.ocr_enhancer import BusRouteMatcher, NepaliNumeralParser
 from app.assistant import AssistantDialogueManager
+from app.culture import BikramSambatConverter, NepaliPhrasing
 from trinetra_core.events import EventBus, Event, EventType, EventCategory, EventPriority
 from trinetra_core.capabilities import DeviceCapabilities, DeviceTier
 from trinetra_core.lite_mode import LiteModeController
@@ -218,6 +219,16 @@ class BusRouteMatchRequest(BaseModel):
 
 class QRPaymentRequest(BaseModel):
     speak: Optional[bool] = True
+
+
+class SpeechRateRequest(BaseModel):
+    rate: float
+
+
+class AssistantChatRequest(BaseModel):
+    message: str
+    speak: Optional[bool] = False
+    cloud_consent: Optional[bool] = False
 
 
 
@@ -554,6 +565,7 @@ event_bus = EventBus()
 lite_mode_controller = LiteModeController(event_bus=event_bus)
 
 context_memory = ContextMemory(os.environ.get("TRINETRA_DB_PATH", "trinetra_caretaker.db"))
+assistant_manager.context_memory = context_memory
 caregiver_link = CaregiverLink(memory=context_memory)
 routine_scheduler = RoutineScheduler(memory=context_memory, event_bus=event_bus)
 fall_detector = FallDetector()
@@ -1927,6 +1939,80 @@ def create_app(
     def caretaker_get_audit(limit: int = 50):
         """Returns tamper-evident action audit trail with SHA-256 hash chains."""
         return context_memory.get_audit_trail(limit=limit)
+
+    @app.get(
+        "/api/culture/date",
+        dependencies=[Depends(verify_token)],
+        summary="Get Bikram Sambat (BS) Calendar Date",
+        tags=["Culture"]
+    )
+    def get_culture_date():
+        """Returns current Bikram Sambat date, weekday, active festival, and spoken phrase."""
+        bs = BikramSambatConverter.get_current_bs()
+        return bs.to_dict()
+
+    @app.get(
+        "/api/speech/rate",
+        dependencies=[Depends(verify_token)],
+        summary="Get Speech Rate",
+        tags=["Speech"]
+    )
+    def get_speech_rate():
+        """Returns the active speech synthesis rate factor."""
+        return {"rate": speech_manager.speech_rate}
+
+    @app.post(
+        "/api/speech/rate",
+        dependencies=[Depends(verify_token)],
+        summary="Set Speech Rate",
+        tags=["Speech"]
+    )
+    def set_speech_rate(payload: SpeechRateRequest):
+        """Dynamically sets the speech synthesis rate factor [0.5, 2.5]."""
+        clamped = max(0.5, min(2.5, payload.rate))
+        speech_manager.speech_rate = clamped
+        return {"status": "ok", "rate": speech_manager.speech_rate}
+
+    @app.post(
+        "/api/assistant/chat",
+        dependencies=[Depends(verify_token)],
+        summary="Code-Switched Conversational Assistant",
+        tags=["Assistant"]
+    )
+    def assistant_chat(payload: AssistantChatRequest):
+        """
+        Conversational assistant endpoint supporting code-switched Nepali/English,
+        cultural calendar queries, caretaker status, guidance, and scene queries.
+        Does not require camera to be running.
+        """
+        jpeg_bytes = None
+        detections = []
+        if camera_manager.adapter.is_active():
+            try:
+                packet = camera_manager.adapter.capture_packet()
+                jpeg_bytes = packet.jpeg_bytes
+                if perception_pipeline.engine.is_ready():
+                    detections = perception_pipeline.engine.detect(jpeg_bytes, packet.frame_id).detections
+            except Exception:
+                pass
+
+        result = assistant_manager.query(
+            question=payload.message,
+            detections=detections,
+            jpeg_bytes=jpeg_bytes,
+            cloud_consent=payload.cloud_consent or False,
+        )
+
+        if payload.speak:
+            speech_manager.announce(
+                result["text"],
+                priority=SpeechPriority.INFORMATIONAL,
+                interrupt=True,
+                cooldown=0.0,
+                language="ne",
+            )
+
+        return result
 
     return app
 
