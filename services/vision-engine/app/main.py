@@ -38,6 +38,8 @@ from app.camera.adapter import (
     OpenCVCameraAdapter,
 )
 from app.capabilities import CurrencyService, FaceRegistry, OCRService, SceneService
+from app.qr_payment import QRPaymentService
+from app.ocr_enhancer import BusRouteMatcher, NepaliNumeralParser
 from app.assistant import AssistantDialogueManager
 from trinetra_core.events import EventBus, Event, EventType, EventCategory, EventPriority
 from trinetra_core.capabilities import DeviceCapabilities, DeviceTier
@@ -207,6 +209,15 @@ class EmergencyTriggerRequest(BaseModel):
 
 class EmergencyCancelRequest(BaseModel):
     reason: Optional[str] = "user_ok"
+
+
+class BusRouteMatchRequest(BaseModel):
+    text: Optional[str] = None
+    speak: Optional[bool] = True
+
+
+class QRPaymentRequest(BaseModel):
+    speak: Optional[bool] = True
 
 
 
@@ -538,6 +549,7 @@ assistant_manager = AssistantDialogueManager()
 currency_service = CurrencyService()
 ocr_service = OCRService()
 face_registry = FaceRegistry()
+qr_payment_service = QRPaymentService()
 event_bus = EventBus()
 lite_mode_controller = LiteModeController(event_bus=event_bus)
 
@@ -1351,6 +1363,71 @@ def create_app(
                 language="ne"
             )
         return result
+
+    @app.post("/api/ocr/bus-route", dependencies=[Depends(verify_token)], tags=["OCR"])
+    def ocr_bus_route(payload: Optional[BusRouteMatchRequest] = None):
+        """Matches bus route and destination from text or camera frame."""
+        text = payload.text if payload and payload.text else None
+        if not text:
+            packet = capture_capability_frame()
+            ocr_res = ocr_service.read(packet.jpeg_bytes)
+            text = ocr_res.get("text", "")
+
+        match = BusRouteMatcher.match_route(text)
+        if payload and payload.speak and match.matched:
+            speech_manager.announce(
+                match.spoken_phrase_ne,
+                priority=SpeechPriority.CRITICAL_HAZARD,
+                interrupt=True,
+                language="ne"
+            )
+        return {
+            "matched": match.matched,
+            "destination": match.destination,
+            "operator": match.operator,
+            "route_number": match.route_number,
+            "spoken_phrase_ne": match.spoken_phrase_ne,
+            "confidence": match.confidence,
+            "raw_text": text,
+        }
+
+    @app.post("/api/qr/identify", dependencies=[Depends(verify_token)], tags=["Payment"])
+    def qr_identify(payload: Optional[QRPaymentRequest] = None):
+        """Scans camera frame for FonePay, eSewa, Khalti, or NepalQR retail codes."""
+        packet = capture_capability_frame()
+        import cv2
+        import numpy as np
+        frame = cv2.imdecode(np.frombuffer(packet.jpeg_bytes, np.uint8), cv2.IMREAD_COLOR)
+        res = qr_payment_service.detect_and_parse(frame)
+
+        if payload and payload.speak and res.detected:
+            speech_manager.announce(
+                res.spoken_phrase_ne,
+                priority=SpeechPriority.CRITICAL_HAZARD,
+                interrupt=True,
+                language="ne"
+            )
+
+        if res.detected:
+            event_bus.publish(Event(
+                event_type=EventType.QR_PAYMENT_DETECTED,
+                category=EventCategory.ASSISTIVE,
+                priority=EventPriority.HIGH,
+                payload={
+                    "scheme": res.scheme,
+                    "merchant_name": res.merchant_name,
+                    "merchant_id": res.merchant_id,
+                }
+            ))
+
+        return {
+            "detected": res.detected,
+            "scheme": res.scheme,
+            "merchant_name": res.merchant_name,
+            "merchant_id": res.merchant_id,
+            "spoken_phrase_ne": res.spoken_phrase_ne,
+            "raw_payload": res.raw_payload,
+        }
 
     @app.post("/api/faces/recognize", dependencies=[Depends(verify_token)], tags=["Faces"])
     def faces_recognize(payload: FaceRecognizeRequest):
