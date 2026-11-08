@@ -13,6 +13,7 @@ import { InstallModal } from "./components/InstallModal";
 import { UpdateNotification } from "./components/UpdateNotification";
 import { triggerHaptic } from "./services/voiceCommands";
 import { cameraApi, ApiError } from "./services/cameraApi";
+import { spatialAudioRadar } from "./services/spatialAudioRadar";
 import {
   ConnectionStatus,
   CameraOperationalState,
@@ -43,6 +44,7 @@ export const App: React.FC = () => {
   const [isModelReady, setIsModelReady] = useState<boolean>(true);
   const [modelError, setModelError] = useState<string | null>(null);
   const [detections, setDetections] = useState<DetectionItem[]>([]);
+  const [audioRadarActive, setAudioRadarActive] = useState<boolean>(false);
   const [groundHazard, setGroundHazard] = useState<GroundHazardInfo | null>(null);
   const [autoCurrency, setAutoCurrency] = useState<any | null>(null);
   const [signGesture, setSignGesture] = useState<any | null>(null);
@@ -258,6 +260,7 @@ export const App: React.FC = () => {
     updateFrameUrl(null);
     setFps(0);
     setDetections([]);
+    spatialAudioRadar.stop();
     setGroundHazard(null);
     setAutoCurrency(null);
     setSignGesture(null);
@@ -338,6 +341,9 @@ export const App: React.FC = () => {
         const detResult = await cameraApi.getLatestDetections();
         if (!cancelled && detResult) {
           setDetections(detResult.detections || []);
+          if (audioRadarActive) {
+            spatialAudioRadar.updateDetections(detResult.detections || []);
+          }
           setGroundHazard(detResult.ground_hazard || null);
           setAutoCurrency(detResult.auto_currency || null);
           setSignGesture(detResult.sign_gesture || null);
@@ -549,6 +555,26 @@ export const App: React.FC = () => {
       if (e.code === "Space") {
         e.preventDefault();
         handleStopSpeech();
+        if (cameraState === "active") {
+          handleDoubleTap();
+        }
+      } else if (e.code === "KeyR" && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setAudioRadarActive((prev) => {
+          const next = !prev;
+          spatialAudioRadar.setEnabled(next);
+          triggerHaptic("command");
+          return next;
+        });
+      } else if (e.code === "Digit1" && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setFeatureTab("vision");
+      } else if (e.code === "Digit2" && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setFeatureTab("deaf");
+      } else if (e.code === "Digit3" && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setFeatureTab("actions");
       } else if (e.code === "KeyD" && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         handleToggleDetection();
@@ -569,7 +595,16 @@ export const App: React.FC = () => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [handleStopSpeech, handleToggleDetection, handleToggleMute, handleLanguageChange, language, verifyHealth]);
+  }, [
+    handleStopSpeech,
+    handleDoubleTap,
+    cameraState,
+    handleToggleDetection,
+    handleToggleMute,
+    handleLanguageChange,
+    language,
+    verifyHealth,
+  ]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -788,6 +823,28 @@ export const App: React.FC = () => {
                 aria-label="Toggle camera mirror perspective mode"
               >
                 {mirrorMode ? "🪞 Mirror Mode (Laptop)" : "👓 Wearable Mode (Forward)"}
+              </button>
+
+              <button
+                type="button"
+                className={`btn ${audioRadarActive ? "btn-primary" : "btn-outline"}`}
+                onClick={() => {
+                  setAudioRadarActive((prev) => {
+                    const next = !prev;
+                    spatialAudioRadar.setEnabled(next);
+                    triggerHaptic("command");
+                    return next;
+                  });
+                }}
+                title="Directional binaural acoustic sonar radar for blind spatial orientation (Hotkey: R)"
+                aria-label={`Toggle Spatial Audio Radar. Currently ${audioRadarActive ? "Active" : "Disabled"}`}
+                style={{
+                  backgroundColor: audioRadarActive ? "#38bdf8" : undefined,
+                  color: audioRadarActive ? "#041322" : undefined,
+                  fontWeight: 700,
+                }}
+              >
+                {audioRadarActive ? "📡 Radar Sonar: ON" : "📡 Radar Sonar: OFF"}
               </button>
 
               <button

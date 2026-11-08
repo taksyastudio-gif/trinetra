@@ -111,6 +111,7 @@ export interface DetectionItem {
   confidence: number;
   box: DetectionBox;
   sector: "left" | "center" | "right";
+  distance_m?: number;
 }
 
 export interface GroundHazardInfo {

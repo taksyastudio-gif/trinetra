@@ -1,5 +1,5 @@
 export const RELEASES_OWNER = "taksyastudio-gif";
-export const RELEASES_REPO = "trinetra-releases";
+export const RELEASES_REPO = "trinetra";
 
 export const GITHUB_REPO_URL = "https://github.com/taksyastudio-gif/trinetra";
 export const RELEASES_PAGE_URL = `https://github.com/${RELEASES_OWNER}/${RELEASES_REPO}/releases`;
