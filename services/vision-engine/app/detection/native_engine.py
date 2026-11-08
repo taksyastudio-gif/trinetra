@@ -235,10 +235,19 @@ class NativeVisionEngine(DetectionEngine):
             sector = classify_sector(x_min, x_max)
             dist_m = max(0.5, round((self.focal_length_px * 0.8) / max(bh, 1), 2))
             confidence = min(0.92, max(0.70, 0.65 + (area / (h * w)) * 0.4))
+            detected_class = "obstacle"
+
+            # In-house TrinetraNet refinement for specific navigational hazards (stairs, vehicles, doors, chairs)
+            crop = frame[full_y : full_y + bh, x : x + bw]
+            if self.classifier.is_loaded and crop.size > 0:
+                pred_class, pred_conf = self.classifier.predict_crop(crop)
+                if pred_class in ["stairs", "vehicle", "chair", "door"] and pred_conf > 0.35:
+                    detected_class = pred_class
+                    confidence = max(confidence, round(pred_conf, 2))
 
             detections.append(
                 Detection(
-                    class_name="obstacle",
+                    class_name=detected_class,
                     confidence=round(confidence, 2),
                     box=BoundingBox(
                         x_min=round(x_min, 4),

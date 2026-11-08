@@ -22,6 +22,10 @@ CLASSES = [
     "sign_fist",
     "hazard_pothole",
     "safe_ground",
+    "stairs",
+    "vehicle",
+    "chair",
+    "door",
 ]
 
 

@@ -108,6 +108,7 @@ def train_model(epochs: int = 20, batch_size: int = 16, lr: float = 0.001):
     model = TrinetraNet(num_classes=len(CLASSES)).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
 
     best_val_acc = 0.0
 
@@ -129,6 +130,8 @@ def train_model(epochs: int = 20, batch_size: int = 16, lr: float = 0.001):
             _, preds = torch.max(outputs, 1)
             correct += torch.sum(preds == labels.data).item()
             total += labels.size(0)
+
+        scheduler.step()
 
         train_loss = running_loss / max(total, 1)
         train_acc = correct / max(total, 1)
@@ -171,4 +174,4 @@ def train_model(epochs: int = 20, batch_size: int = 16, lr: float = 0.001):
 
 
 if __name__ == "__main__":
-    train_model(epochs=15)
+    train_model(epochs=35, lr=0.002)

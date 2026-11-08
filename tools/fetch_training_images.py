@@ -52,6 +52,26 @@ SEARCH_TERMS = {
         "tile floor clean",
         "blanket carpet bedroom floor",
     ],
+    "stairs": [
+        "staircase steps indoor",
+        "wooden stairs home",
+        "concrete stairway steps",
+    ],
+    "vehicle": [
+        "car road traffic front",
+        "motorcycle vehicle street",
+        "bus vehicle city road",
+    ],
+    "chair": [
+        "chair furniture living room",
+        "wooden chair office",
+        "armchair indoor furniture",
+    ],
+    "door": [
+        "indoor wooden door entrance",
+        "closed room door interior",
+        "doorway frame indoor",
+    ],
 }
 
 HEADERS = {
