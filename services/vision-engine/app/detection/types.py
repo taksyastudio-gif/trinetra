@@ -4,7 +4,7 @@ Contains primitive dataclasses and geometric helpers for bounding boxes, sectors
 """
 
 from dataclasses import dataclass
-from typing import List
+from typing import Any, List, Optional
 
 
 @dataclass(frozen=True)
@@ -61,3 +61,7 @@ class DetectionResult:
     inference_time_ms: float
     model_name: str
     e2e_latency_ms: float = 0.0
+    ground_hazard: Optional[Any] = None
+    overhead_wire: Optional[Any] = None
+    auto_currency: Optional[Any] = None
+    sign_gesture: Optional[Any] = None

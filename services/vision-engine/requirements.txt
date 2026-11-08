@@ -14,6 +14,10 @@ pydantic==2.14.1
 flatbuffers==25.12.19
 protobuf==7.36.2
 
+# Optional local Nepali OCR wrapper. The system Tesseract executable and its
+# nep.traineddata remain explicit deployment prerequisites.
+pytesseract==0.3.13
+
 # Testing & Quality Gates
 pytest==9.1.1
 httpx==0.28.1

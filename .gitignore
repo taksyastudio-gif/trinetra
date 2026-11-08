@@ -102,4 +102,11 @@ trinetra-api.json
 *.tmp
 *.tmp.*
 
+# PyInstaller & Tauri Sidecar Binaries
+services/vision-engine/dist/
+services/vision-engine/build/
+*.spec
+apps/desktop/src-tauri/binaries/
+
+
 

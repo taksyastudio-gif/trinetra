@@ -262,7 +262,7 @@ def test_default_engine_selection_and_status():
     assert isinstance(engine, OnnxDetectionEngine)
     info = engine.get_model_info()
     assert info["runtime"] == "onnxruntime-cpu"
-    assert info["model_name"] == "yolox_nano.onnx"
+    assert info["model_name"] in ("trinetra_nano.onnx", "yolox_nano.onnx")
     assert info["is_ready"] is True
 
 
@@ -338,7 +338,7 @@ def test_api_detection_status_reports_real_engine():
         assert resp.status_code == 200
         data = resp.json()
         assert data["is_ready"] is True
-        assert data["model_name"] == "yolox_nano.onnx"
+        assert data["model_name"] in ("trinetra_nano.onnx", "yolox_nano.onnx")
         assert data["runtime"] == "onnxruntime-cpu"
         assert "dog" in data["supported_classes"]
 

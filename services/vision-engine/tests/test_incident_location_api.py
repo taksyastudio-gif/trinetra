@@ -142,3 +142,22 @@ def test_location_api_status_and_offline_configuration(api_routes):
     # 4. Disable location again
     dis_data = config_fn(LocationConfigureRequest(enabled=False))
     assert dis_data["status"] == "disabled"
+
+
+def test_location_bookmark_endpoints(api_routes):
+    routes, _, _, _ = api_routes
+    bm_fn = routes["location_bookmark"]
+    list_bm_fn = routes["location_list_bookmarks"]
+
+    # Save a bookmark
+    from app.main import LocationBookmarkRequest
+    res = bm_fn(LocationBookmarkRequest(label="Ratnapark Stop"))
+    assert res["status"] == "saved"
+    assert "Ratnapark Stop" in res["message"]
+    bm = res["bookmark"]
+    assert bm["label"] == "Ratnapark Stop"
+    assert "openstreetmap.org" in bm["osm_url"]
+
+    # List bookmarks
+    all_bms = list_bm_fn()
+    assert any(b["id"] == bm["id"] for b in all_bms)

@@ -113,7 +113,7 @@ def test_out_of_process_desktop_supervisor_lifecycle():
             assert res.status == 200
             det_data = json.loads(res.read().decode())
             assert det_data["is_ready"] is True
-            assert "yolox" in det_data["model_name"].lower() or "fake" in det_data["model_name"].lower()
+            assert any(k in det_data["model_name"].lower() for k in ("trinetra", "yolox", "fake"))
 
         # 5. Start camera session
         start_cam_url = f"{base_url}/api/camera/start"

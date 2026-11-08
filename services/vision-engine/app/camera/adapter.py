@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 import logging
 import math
+import os
 import threading
 import time
 from typing import Any, Dict, Optional, Tuple, Union
@@ -183,12 +184,25 @@ class OpenCVCameraAdapter(CameraAdapter):
         camera_index: Union[int, str] = 0,
         width: int = 640,
         height: int = 480,
-        jpeg_quality: int = 85
+        jpeg_quality: int = 85,
+        horizontal_flip: Optional[bool] = None
     ):
         self.camera_index = camera_index
         self.width = width
         self.height = height
         self.jpeg_quality = jpeg_quality
+
+        if horizontal_flip is not None:
+            self.horizontal_flip = horizontal_flip
+        else:
+            env_mirror = os.environ.get("TRINETRA_CAMERA_MIRROR", "").lower()
+            if env_mirror in ("1", "true", "yes"):
+                self.horizontal_flip = True
+            elif env_mirror in ("0", "false", "no"):
+                self.horizontal_flip = False
+            else:
+                # Default to True for built-in laptop webcams (mirror test mode), False for external streams
+                self.horizontal_flip = isinstance(camera_index, int)
 
         self._cap: Any = None
         self._lock = threading.Lock()
@@ -250,9 +264,18 @@ class OpenCVCameraAdapter(CameraAdapter):
                     "or the network stream URL is accessible."
                 )
 
-            # Set desired capture properties
+            # Set desired capture properties for fluid high-framerate streaming
+            try:
+                cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+            except Exception:
+                pass
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+            try:
+                cap.set(cv2.CAP_PROP_FPS, 30.0)
+                cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            except Exception:
+                pass
 
             self._cap = cap
             self._active = True
@@ -316,8 +339,17 @@ class OpenCVCameraAdapter(CameraAdapter):
                 cap = cv2.VideoCapture(self.camera_index)
 
             if cap is not None and cap.isOpened():
+                try:
+                    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+                except Exception:
+                    pass
                 cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
                 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+                try:
+                    cap.set(cv2.CAP_PROP_FPS, 30.0)
+                    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                except Exception:
+                    pass
                 self._cap = cap
                 return True
 
@@ -388,6 +420,9 @@ class OpenCVCameraAdapter(CameraAdapter):
                 raise CameraReconnectingError(self._reconnect_attempts, self.max_reconnect_attempts, backoff)
 
             import cv2
+            if getattr(self, "horizontal_flip", False):
+                frame = cv2.flip(frame, 1)
+
             encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), self.jpeg_quality]
             success, encoded_img = cv2.imencode(".jpg", frame, encode_params)
             if not success or encoded_img is None:
@@ -425,6 +460,7 @@ class OpenCVCameraAdapter(CameraAdapter):
                 "connection_state": self._connection_state.value,
                 "reconnect_attempts": self._reconnect_attempts,
                 "max_reconnect_attempts": self.max_reconnect_attempts,
+                "mirror_mode": getattr(self, "horizontal_flip", False),
                 "last_error": self._last_error
             }
 
@@ -518,6 +554,7 @@ class MJPEGStreamCameraAdapter(CameraAdapter):
         self._frame_seq = 0
         self._dropped_frames = 0
         self._session_id = ""
+        self.horizontal_flip = False
         self._started_at: Optional[float] = None
         self._last_frame_at: Optional[float] = None
         self._last_error: Optional[str] = None
@@ -654,12 +691,14 @@ class FakeCameraAdapter(CameraAdapter):
         height: int = 240,
         should_fail_init: bool = False,
         should_fail_capture: bool = False,
-        devices: Optional[list[CameraDeviceInfo]] = None
+        devices: Optional[list[CameraDeviceInfo]] = None,
+        custom_jpeg: Optional[bytes] = None
     ):
         self.width = width
         self.height = height
         self.should_fail_init = should_fail_init
         self.should_fail_capture = should_fail_capture
+        self._custom_jpeg = custom_jpeg
         self._devices = devices if devices is not None else [
             CameraDeviceInfo(index=0, name="Simulated Built-in Camera", is_available=True, status="available"),
             CameraDeviceInfo(index=1, name="Simulated External USB Camera", is_available=True, status="available"),
@@ -678,6 +717,7 @@ class FakeCameraAdapter(CameraAdapter):
         self._simulate_transient_failures: int = 0
         self._simulate_permanent_disconnection: bool = False
         self._frame_seq = 0
+        self.horizontal_flip = False
         self._dropped_frames = 0
         self._session_id: str = ""
         self._start_time: Optional[float] = None
@@ -866,7 +906,9 @@ class FakeCameraAdapter(CameraAdapter):
             )
 
     def _generate_test_jpeg(self) -> bytes:
-        """Valid 32x24 neutral gray JPEG image generated without external runtime dependencies."""
+        """Valid neutral JPEG image or configured custom JPEG frame."""
+        if self._custom_jpeg is not None:
+            return self._custom_jpeg
         return (
             b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xdb\x00C\x00\x02\x01\x01\x01\x01\x01\x02\x01\x01\x01\x02\x02\x02\x02\x02\x04\x03\x02\x02\x02\x02\x05\x04\x04\x03\x04\x06\x05\x06\x06\x06\x05\x06\x06\x06\x07\t\x08\x06\x07\t\x07\x06\x06\x08\x0b\x08\t\n\n\n\n\n\x06\x08\x0b\x0c\x0b\n\x0c\t\n\n\n\xff\xdb\x00C\x01\x02\x02\x02\x02\x02\x02\x05\x03\x03\x05\n\x07\x06\x07\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\xff\xc0\x00\x11\x08\x00\x18\x00 \x03\x01\"\x00\x02\x11\x01\x03\x11\x01\xff\xc4\x00\x1f\x00\x00\x01\x05\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\xff\xc4\x00\xb5\x10\x00\x02\x01\x03\x03\x02\x04\x03\x05\x05\x04\x04\x00\x00\x01}\x01\x02\x03\x00\x04\x11\x05\x12!1A\x06\x13Qa\x07\"q\x142\x81\x91\xa1\x08#B\xb1\xc1\x15R\xd1\xf0$3br\x82\t\n\x16\x17\x18\x19\x1a%&\'()*456789:CDEFGHIJSTUVWXYZcdefghijstuvwxyz\x83\x84\x85\x86\x87\x88\x89\x8a\x92\x93\x94\x95\x96\x97\x98\x99\x9a\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xff\xc4\x00\x1f\x01\x00\x03\x01\x01\x01\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\xff\xc4\x00\xb5\x11\x00\x02\x01\x02\x04\x04\x03\x04\x07\x05\x04\x04\x00\x01\x02w\x00\x01\x02\x03\x11\x04\x05!1\x06\x12AQ\x07aq\x13\"2\x81\x08\x14B\x91\xa1\xb1\xc1\t#3R\xf0\x15br\xd1\n\x16$4\xe1%\xf1\x17\x18\x19\x1a&\'()*56789:CDEFGHIJSTUVWXYZcdefghijstuvwxyz\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x92\x93\x94\x95\x96\x97\x98\x99\x9a\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xff\xda\x00\x0c\x03\x01\x00\x02\x11\x03\x11\x00?\x00(\xa2\x8a\x00(\xa2\x8a\x00(\xa2\x8a\x00(\xa2\x8a\x00\xff\xd9"
         )
@@ -885,5 +927,6 @@ class FakeCameraAdapter(CameraAdapter):
                 "connection_state": self._connection_state.value,
                 "reconnect_attempts": self._reconnect_attempts,
                 "max_reconnect_attempts": self.max_reconnect_attempts,
+                "mirror_mode": getattr(self, "horizontal_flip", False),
                 "last_error": self._last_error
             }

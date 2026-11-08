@@ -113,6 +113,15 @@ export interface DetectionItem {
   sector: "left" | "center" | "right";
 }
 
+export interface GroundHazardInfo {
+  detected: boolean;
+  hazard_type: string;
+  severity: string;
+  confidence: number;
+  message: string;
+  bounding_box?: number[] | null;
+}
+
 export interface DetectionResultResponse {
   frame_id: number;
   timestamp: number;
@@ -120,6 +129,22 @@ export interface DetectionResultResponse {
   inference_time_ms: number;
   model_name: string;
   e2e_latency_ms?: number;
+  ground_hazard?: GroundHazardInfo | null;
+  auto_currency?: {
+    status: string;
+    denomination?: number | null;
+    confidence: number;
+    message: string;
+    spoken_text?: string;
+  } | null;
+  sign_gesture?: {
+    detected: boolean;
+    gesture_type: string;
+    confidence: number;
+    message: string;
+    symbol: string;
+    bounding_box?: number[] | null;
+  } | null;
 }
 
 export interface DetectionStatusResponse {
@@ -149,4 +174,21 @@ export interface AssistiveResult {
   confidence: number;
   denomination?: number | null;
   identity?: string | null;
+}
+
+export interface SpeechTranscribeResponse {
+  status: "recognized" | "silence" | "unrecognized" | "invalid_audio" | "error";
+  transcript: string;
+  command: string;
+  confidence: number;
+  message: string;
+  duration_sec: number;
+  is_offline: boolean;
+}
+
+export interface OfflineSttStatusResponse {
+  status: string;
+  engine: string;
+  offline: boolean;
+  supported_commands: string[];
 }

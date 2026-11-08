@@ -8,6 +8,7 @@ Validates:
 - PerceptionPipeline end-to-end integration with localized formatting
 """
 
+import sys
 import time
 import pytest
 from app.audio.speaker import (
@@ -25,6 +26,7 @@ from app.detection.engine import (
 from app.localization import SupportedLanguage, format_announcement, get_announcement_key
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows SAPI / WinRT requires Windows")
 def test_windows_sapi_backend_stop_preemption_contract():
     """Validates that WindowsSapiSpeechBackend.stop() handles proc termination safely without lock deadlock."""
     backend = WindowsSapiSpeechBackend()

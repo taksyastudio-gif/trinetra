@@ -1,0 +1,16 @@
+{
+  "test_samples": 23,
+  "accuracy": 0.17391304347826086,
+  "confusion_matrix": {
+    "10": {
+      "100": 13
+    },
+    "100": {
+      "100": 4
+    },
+    "50": {
+      "100": 6
+    }
+  },
+  "note": "Independent held-out evaluation only."
+}

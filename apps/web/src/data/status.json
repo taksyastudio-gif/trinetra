@@ -1,0 +1,146 @@
+[
+  {
+    "id": "object_detection",
+    "category": "vision",
+    "status": "working",
+    "name_en": "Spatial Hazard & Object Detection",
+    "name_ne": "स्थानिक खतरा र वस्तु पहिचान",
+    "note_en": "YOLOX-Nano CPU inference (~35-50ms) categorizing obstacles into Left, Center, and Right spatial sectors.",
+    "note_ne": "YOLOX-Nano सीपीयू मोडल (~३५-५०ms) जसले अवरोधहरूलाई बायाँ, बीच र दायाँ क्षेत्रमा विभाजन गर्छ।"
+  },
+  {
+    "id": "overhead_wires",
+    "category": "vision",
+    "status": "working",
+    "name_en": "Dangling Overhead Wire Detection",
+    "name_ne": "झुण्डिएका नाङ्गा तारको पहिचान",
+    "note_en": "Edge and Hough transform scanning the upper 35% clearance zone to alert on sagging street cables (~5ms).",
+    "note_ne": "काठमाडौंका सडकमा टाउको माथि झुण्डिएका तारहरू पत्ता लगाउने क्यानी एज र हफ ट्रान्सफर्म प्रविधि (~५ms)।"
+  },
+  {
+    "id": "ground_discontinuity",
+    "category": "vision",
+    "status": "working",
+    "name_en": "Ground Discontinuity & Curbs",
+    "name_ne": "सडकको खाल्डो र उचाइ परिवर्तन",
+    "note_en": "Texture gradient analyzer alerting to sudden drops, potholes, steps down, and curb edges.",
+    "note_ne": "अगाडिको बाटोमा रहेका खाल्डाखुल्डी, पेटी र सिँढीका अचानक उचाइ परिवर्तनको पहिचान।"
+  },
+  {
+    "id": "ego_motion",
+    "category": "vision",
+    "status": "working",
+    "name_en": "Optical Flow Motion Compensation",
+    "name_ne": "हिँडडुल गर्दाको कम्पन नियन्त्रण",
+    "note_en": "Sparse Lucas-Kanade optical flow tracking bearer movement to avoid false stationary hazard warnings.",
+    "note_ne": "प्रयोगकर्ता हिँड्दा क्यामेरा हल्लिने कम्पन र गतिलाई सन्तुलन गर्ने लुकास-कानाडे अप्टिकल फ्लो।"
+  },
+  {
+    "id": "npr_currency",
+    "category": "financial",
+    "status": "experimental",
+    "name_en": "Nepali Rupee (NPR) Banknotes",
+    "name_ne": "नेपाली नोट पहिचान (रु. ५ देखि १०००)",
+    "note_en": "17.4% baseline accuracy on folded/weathered notes. Strictly gated by a 0.70 confidence threshold with spoken Nepali fallback when uncertain.",
+    "note_ne": "खुम्चिएका वा पुराना नोटमा १७.४% शुद्धता। ०.७० को कडा थ्रेसहोल्ड राखिएको छ र शंका लागेमा स्पष्ट नेपाली आवाजमा सचेत गराइन्छ।"
+  },
+  {
+    "id": "devanagari_ocr",
+    "category": "reading",
+    "status": "experimental",
+    "name_en": "Devanagari OCR & Signboards",
+    "name_ne": "देवनागरी अक्षर र होर्डिङ बोर्ड वाचन",
+    "note_en": "Tesseract 5 engine (CER 1.0157, 3.1% exact match on complex outdoor signs). Gated at 0.45 confidence with spoken fallback when text is unreadable.",
+    "note_ne": "टेसरेक्ट ५ (CER १.०१५७, ३.१% पूर्ण मिलान)। सफा छापिएका अक्षर पढ्न सकिन्छ; नबुझिने भएमा ०.४५ थ्रेसहोल्डले अडियो सूचना दिन्छ।"
+  },
+  {
+    "id": "bus_matcher",
+    "category": "reading",
+    "status": "working",
+    "name_en": "Public Transit Bus Board Matching",
+    "name_ne": "सार्वजनिक बस गन्तव्य पहिचान",
+    "note_en": "Fuzzy Devanagari route matcher for Kathmandu transit hubs (Ratna Park, Lagankhel, Sajha, Ring Road).",
+    "note_ne": "काठमाडौंका मुख्य रुटहरू (रत्नपार्क, लगनखेल, साझा, चक्रपथ) का हातले लेखिएका बसका बोर्ड पहिचान।"
+  },
+  {
+    "id": "qr_payment",
+    "category": "financial",
+    "status": "working",
+    "name_en": "Retail QR Standee Readout",
+    "name_ne": "क्युआर (QR) मर्चेन्ट वाचन",
+    "note_en": "100% offline EMVCo parser for FonePay, eSewa, Khalti, and NepalQR payment stands; reads merchant and account name aloud.",
+    "note_ne": "फोनपे, इसेवा, खल्ती र नेपालक्युआर स्ट्यान्डीहरू पूर्ण अफलाइन पढेर पसलको नाम स्वरमा सुनाउने।"
+  },
+  {
+    "id": "nepali_tts",
+    "category": "voice",
+    "status": "working",
+    "name_en": "Nepali Neural Voice (Piper TTS)",
+    "name_ne": "नेपाली न्युरल आवाज (पाइपर टिटिएस)",
+    "note_en": "Natural Devanagari speech synthesis running locally on CPU with zero cloud latency and pre-rendered emergency fast-paths.",
+    "note_ne": "इन्टरनेट बिना सीधै उपकरणमै चल्ने स्पष्ट र प्राकृतिक नेपाली आवाज तथा आकस्मिक चेतावनी।"
+  },
+  {
+    "id": "speech_rate",
+    "category": "voice",
+    "status": "working",
+    "name_en": "Dynamic Speech Rate Scaling",
+    "name_ne": "आवाजको गति नियन्त्रण (०.५x देखि २.५x)",
+    "note_en": "Customizable speech tempo (0.5x to 2.5x) tuned for elderly users as well as experienced screen-reader users.",
+    "note_ne": "ज्येष्ठ नागरिक र अनुभवी स्क्रिन-रिडर प्रयोगकर्ताका लागि ०.५x देखि २.५x सम्म आवाजको गति मिलाउन सकिने।"
+  },
+  {
+    "id": "bs_calendar",
+    "category": "voice",
+    "status": "working",
+    "name_en": "Bikram Sambat (BS) Calendar & Festivals",
+    "name_ne": "विक्रम संवत् पात्रो र चाडपर्व",
+    "note_en": "Offline calendar conversion, Tithi, and Nepali national festival reminders (Dashain, Tihar, Chhath).",
+    "note_ne": "नेपाली मिति, बार, तिथि र दशैं, तिहार, छठ जस्ता मुख्य चाडपर्वहरूको अफलाइन जानकारी।"
+  },
+  {
+    "id": "sign_language",
+    "category": "accessibility",
+    "status": "experimental",
+    "name_en": "Bounded Sign Language Gestures",
+    "name_ne": "आधारभूत सांकेतिक भाषा इसारा",
+    "note_en": "Heuristic hand geometry classifier for 7 core gestures (Help, Water, Food, Thanks, Sick, Namaste, Stop). Not a full NSL lexicon.",
+    "note_ne": "७ वटा अत्यावश्यक इसाराहरू (मद्दत, पानी, खाना, धन्यवाद, बिरामी, नमस्ते, रोक्नुहोस्) को पहिचान।"
+  },
+  {
+    "id": "live_subtitles",
+    "category": "accessibility",
+    "status": "working",
+    "name_en": "Live Subtitles & Visual AAC",
+    "name_ne": "प्रत्यक्ष सबटाइटल र गैर-मौखिक बोर्ड",
+    "note_en": "High-contrast visual subtitle overlays and symbol soundboards designed for deaf and non-verbal users.",
+    "note_ne": "बहिरा तथा बोल्न नसक्ने व्यक्तिहरूका लागि उच्च कन्ट्रास्ट सबटाइटल र संकेत बोर्ड।"
+  },
+  {
+    "id": "local_memory",
+    "category": "privacy",
+    "status": "working",
+    "name_en": "Local Context Memory (Private SQLite)",
+    "name_ne": "स्थानीय गोप्य डेटाबेस (अफलाइन)",
+    "note_en": "Tamper-evident SQLite storage with SHA-256 integrity chains. Zero telemetry, zero cloud storage.",
+    "note_ne": "उपकरणमै सुरक्षित SQLite भण्डारण। कुनै पनि भिडियो वा डेटा इन्टरनेटमा पठाइँदैन।"
+  },
+  {
+    "id": "face_recognition",
+    "category": "vision",
+    "status": "planned",
+    "name_en": "Caregiver Face Recognition",
+    "name_ne": "सहयोगी अनुहार पहिचान",
+    "note_en": "Face detection via OpenCV YuNet is operational. Named facial identity recognition is planned pending local SFace embedding integration.",
+    "note_ne": "अनुहार पत्ता लगाउने कार्य चल्छ। चिनेजानेका व्यक्तिको नाम पहिचान गर्ने सुविधा स्थानीय SFace मोडेलसँगै आउँदैछ।"
+  },
+  {
+    "id": "caregiver_sms",
+    "category": "caretaker",
+    "status": "planned",
+    "name_en": "Cellular Caregiver Fall SMS Dispatch",
+    "name_ne": "मोबाइल एसएमएस मार्फत परिवारलाई सूचना",
+    "note_en": "Fall detection logic and SMS payload generation are operational. Direct GSM cellular dispatch currently runs in simulation pending serial AT-modem hardware.",
+    "note_ne": "लडेको पत्ता लगाउने एल्गोरिदम तयार छ। सीधै मोबाइल सिमबाट एसएमएस पठाउने हार्डवेयर मोडेम थप्ने कार्य जारी छ।"
+  }
+]

@@ -521,6 +521,7 @@ def test_detection_engine_lifecycle_and_latest(fake_adapter):
         assert stop_det.json()["active"] is False
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows SAPI / WinRT requires Windows")
 def test_windows_sapi_backend_stop_preemption():
     """Validates that WindowsSapiSpeechBackend.stop() safely handles proc termination without lock deadlocks."""
     from app.audio.speaker import WindowsSapiSpeechBackend

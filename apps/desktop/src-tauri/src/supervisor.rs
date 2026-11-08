@@ -282,6 +282,77 @@ pub fn find_service_dir_internal(base_dir: &std::path::Path, env_override: Optio
     None
 }
 
+/// Locates the frozen sidecar vision engine binary if available, checking
+/// explicit environment overrides, sidecar binary directories, bundles, and build outputs.
+pub fn find_sidecar_binary(base_dir: &std::path::Path) -> Option<PathBuf> {
+    find_sidecar_binary_internal(
+        base_dir,
+        std::env::var("TRINETRA_SIDECAR_BIN")
+            .or_else(|_| std::env::var("TRINETRA_VISION_ENGINE_BIN"))
+            .ok()
+            .as_deref(),
+    )
+}
+
+pub fn find_sidecar_binary_internal(base_dir: &std::path::Path, env_override: Option<&str>) -> Option<PathBuf> {
+    // 1. Check explicit environment override
+    if let Some(env_path) = env_override {
+        let p = PathBuf::from(env_path.trim());
+        if p.is_file() {
+            return Some(p);
+        }
+    }
+
+    #[cfg(windows)]
+    let bin_name = "trinetra-vision-engine.exe";
+    #[cfg(not(windows))]
+    let bin_name = "trinetra-vision-engine";
+
+    #[cfg(windows)]
+    let target_bin_name = "trinetra-vision-engine-x86_64-pc-windows-msvc.exe";
+    #[cfg(not(windows))]
+    let target_bin_name = "trinetra-vision-engine-x86_64-unknown-linux-gnu";
+
+    let mut candidates = Vec::new();
+
+    // 1. Direct or adjacent sidecar directory
+    candidates.push(base_dir.join(bin_name));
+    candidates.push(base_dir.join(target_bin_name));
+    candidates.push(base_dir.join("binaries").join(bin_name));
+    candidates.push(base_dir.join("binaries").join(target_bin_name));
+    candidates.push(base_dir.join("trinetra-vision-engine").join(bin_name));
+
+    // 2. Bundled resource directory layouts
+    candidates.push(base_dir.join("resources").join(bin_name));
+    candidates.push(base_dir.join("resources").join("binaries").join(bin_name));
+    candidates.push(base_dir.join("resources").join("binaries").join(target_bin_name));
+    candidates.push(base_dir.join("resources").join("trinetra-vision-engine").join(bin_name));
+
+    // 3. Workspace development dist paths
+    candidates.push(base_dir.join("services").join("vision-engine").join("dist").join("trinetra-vision-engine").join(bin_name));
+    candidates.push(base_dir.join("dist").join("trinetra-vision-engine").join(bin_name));
+    candidates.push(base_dir.join("src-tauri").join("binaries").join(bin_name));
+    candidates.push(base_dir.join("src-tauri").join("binaries").join(target_bin_name));
+
+    // 4. Ancestor directories traversal
+    let mut curr = base_dir;
+    while let Some(parent) = curr.parent() {
+        candidates.push(parent.join("services").join("vision-engine").join("dist").join("trinetra-vision-engine").join(bin_name));
+        candidates.push(parent.join("apps").join("desktop").join("src-tauri").join("binaries").join(bin_name));
+        candidates.push(parent.join("apps").join("desktop").join("src-tauri").join("binaries").join(target_bin_name));
+        candidates.push(parent.join("binaries").join(bin_name));
+        curr = parent;
+    }
+
+    for candidate in candidates {
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+    }
+
+    None
+}
+
 /// Resolves the preferred Python executable, preferring explicit environment override,
 /// a local virtual environment (.venv) if present, or system python.
 pub fn resolve_python_command(service_dir: Option<&std::path::Path>) -> String {
@@ -442,41 +513,57 @@ impl ServiceSupervisor {
         self.is_external = false;
         self.is_verified_ready = false;
         let service_dir = find_service_dir(&base_dir);
-        let python_cmd = resolve_python_command(service_dir.as_deref());
+        let maybe_sidecar = find_sidecar_binary(&base_dir);
 
-        // Avoid shell interpolation by passing discrete command-line arguments
-        let mut cmd = Command::new(&python_cmd);
-        cmd.args([
-            "-m",
-            "uvicorn",
-            "app.main:create_app",
-            "--factory",
-            "--host",
-            &self.host,
-            "--port",
-            &self.port.to_string(),
-            "--no-access-log",
-        ])
-        .env("TRINETRA_SESSION_TOKEN", &self.token)
-        .env("TRINETRA_PARENT_PID", std::process::id().to_string())
-        .env("PYTHONUNBUFFERED", "1")
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+        // Prefer frozen sidecar binary; fall back to virtualenv or system Python in dev
+        let mut cmd = if let Some(ref sidecar_bin) = maybe_sidecar {
+            let mut c = Command::new(sidecar_bin);
+            c.args([
+                "--host",
+                &self.host,
+                "--port",
+                &self.port.to_string(),
+            ]);
+            if let Some(parent) = sidecar_bin.parent() {
+                c.current_dir(parent);
+            }
+            c
+        } else {
+            let python_cmd = resolve_python_command(service_dir.as_deref());
+            let mut c = Command::new(&python_cmd);
+            c.args([
+                "-m",
+                "uvicorn",
+                "app.main:create_app",
+                "--factory",
+                "--host",
+                &self.host,
+                "--port",
+                &self.port.to_string(),
+                "--no-access-log",
+            ]);
+            if let Some(ref dir) = service_dir {
+                c.current_dir(dir);
+            } else {
+                return Err(format!(
+                    "Could not locate frozen sidecar binary or 'services/vision-engine' directory starting from: {}",
+                    base_dir.display()
+                ));
+            }
+            c
+        };
+
+        cmd.env("TRINETRA_SESSION_TOKEN", &self.token)
+            .env("TRINETRA_PARENT_PID", std::process::id().to_string())
+            .env("PYTHONUNBUFFERED", "1")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
 
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
             cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-        }
-
-        if let Some(ref dir) = service_dir {
-            cmd.current_dir(dir);
-        } else {
-            return Err(format!(
-                "Could not locate 'services/vision-engine' directory starting from: {}",
-                base_dir.display()
-            ));
         }
 
         match cmd.spawn() {
@@ -954,6 +1041,24 @@ mod tests {
         );
 
         let _ = handle.join();
+    }
+
+    #[test]
+    fn test_find_sidecar_binary_env_override() {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let dummy_file = manifest_dir.join("Cargo.toml");
+        let found = find_sidecar_binary_internal(&manifest_dir, Some(dummy_file.to_str().unwrap()));
+        assert_eq!(found, Some(dummy_file));
+    }
+
+    #[test]
+    fn test_find_sidecar_binary_resolves_existing_sidecar() {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let sidecar = find_sidecar_binary(&manifest_dir);
+        // If frozen sidecar was copied or generated in workspace, it should resolve to an existing file
+        if let Some(path) = sidecar {
+            assert!(path.is_file(), "Resolved sidecar binary must be a valid file");
+        }
     }
 }
 

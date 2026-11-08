@@ -15,6 +15,7 @@ Tests:
 """
 
 import os
+import sys
 from pathlib import Path
 import tempfile
 import threading
@@ -276,6 +277,7 @@ def test_temp_wav_bounded_ring_buffer(tmp_path):
     backend.shutdown()
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows SAPI fallback requires Windows")
 def test_rollback_via_environment_variable(monkeypatch):
     """Validates that setting TRINETRA_DISABLE_PIPER=1 rolls back completely to Windows SAPI."""
     monkeypatch.setenv("TRINETRA_DISABLE_PIPER", "1")

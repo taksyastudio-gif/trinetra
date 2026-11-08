@@ -1,28 +1,182 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { cameraApi, ApiError } from "../services/cameraApi";
+import { voiceCommandService, VoiceCommandMatch, triggerHaptic } from "../services/voiceCommands";
 
-interface Props { disabled: boolean; }
+interface Props {
+  disabled: boolean;
+  onTriggerSOS?: () => void;
+}
 
-export const AssistiveActions: React.FC<Props> = ({ disabled }) => {
-  const [result, setResult] = useState("क्यामेरा सुरु गरेर विकल्प छान्नुहोस्।");
+export const AssistiveActions: React.FC<Props> = ({ disabled, onTriggerSOS }) => {
+  const [result, setResult] = useState("क्यामेरा सुरु गरेर विकल्प छान्नुहोस् वा आवाज दिनुहोस्।");
   const [busy, setBusy] = useState(false);
-  const run = async (action: () => Promise<{ text?: string; message?: string | null; denomination?: number | null; identity?: string | null }>) => {
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+
+  const run = useCallback(async (
+    action: () => Promise<{ text?: string; message?: string | null; denomination?: number | null; identity?: string | null; bookmark?: any }>
+  ) => {
     setBusy(true);
     try {
       const response = await action();
-      setResult(response.text || response.message || (response.denomination ? `रु ${response.denomination}` : response.identity || "निश्चित परिणाम आएन।"));
+      const text =
+        response.text ||
+        response.message ||
+        (response.denomination ? `रु ${response.denomination}` : null) ||
+        response.identity ||
+        (response.bookmark ? `सुरक्षित गरियो: ${response.bookmark.label}` : null) ||
+        "निश्चित परिणाम आएन।";
+      setResult(text);
+      triggerHaptic("success");
     } catch (error) {
       setResult(error instanceof ApiError ? error.message : "अनुरोध पूरा हुन सकेन।");
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  // Voice Command Dispatcher
+  const handleVoiceCommand = useCallback((match: VoiceCommandMatch) => {
+    if (disabled || busy) return;
+
+    if (match.type === "currency") {
+      run(() => cameraApi.identifyCurrency());
+    } else if (match.type === "bookmark") {
+      run(() => cameraApi.saveLocationBookmark());
+    } else if (match.type === "scene") {
+      run(() => cameraApi.queryScene("के छ?"));
+    } else if (match.type === "ocr") {
+      run(() => cameraApi.readText());
+    } else if (match.type === "mute") {
+      cameraApi.stopSpeech().then(() => {
+        setResult("अडियो बन्द गरियो।");
+      });
+    } else if (match.type === "help") {
+      const helpMsg = "त्रिनेत्र सहायक: नोट पहिचान गर्न 'पैसा हेर', वरिपरि बुझ्न 'के छ', अक्षर पढ्न 'पढ', ठाउँ सेभ गर्न 'याद राख' भन्नुहोस्।";
+      cameraApi.announceSpeech(helpMsg, "critical_hazard", true).then(() => {
+        setResult(helpMsg);
+      });
+    }
+  }, [disabled, busy, run]);
+
+  const toggleVoiceControl = async () => {
+    if (!voiceCommandService.isSupported()) {
+      setVoiceError("तपाईंको उपकरणमा अडियो रेकर्डर वा माइक्रोफोन उपलब्ध छैन।");
+      return;
+    }
+
+    if (isVoiceActive) {
+      voiceCommandService.stop();
+      setIsVoiceActive(false);
+    } else {
+      setVoiceError(null);
+      const started = await voiceCommandService.start(
+        handleVoiceCommand,
+        (listening, err, statusText) => {
+          setIsVoiceActive(listening);
+          if (err) setVoiceError(err);
+          if (statusText) setResult(statusText);
+        }
+      );
+      if (started) {
+        setIsVoiceActive(true);
+        triggerHaptic("command");
+        setResult("आवाज नियन्त्रण सक्रिय: 'पैसा हेर', 'के छ', 'पढ', वा 'याद राख' भन्नुहोस्।");
+      }
+    }
   };
-  return <section className="assistive-actions" aria-labelledby="assistive-actions-title">
-    <h2 id="assistive-actions-title">सहायक कार्यहरू</h2>
-    <div className="detection-toolbar">
-      <button className="btn btn-outline" disabled={disabled || busy} onClick={() => run(() => cameraApi.queryScene("के छ?"))}>के छ?</button>
-      <button className="btn btn-outline" disabled={disabled || busy} onClick={() => run(() => cameraApi.identifyCurrency())}>नोट चिन्नुहोस्</button>
-      <button className="btn btn-outline" disabled={disabled || busy} onClick={() => run(() => cameraApi.readText())}>पढ्नुहोस्</button>
-      <button className="btn btn-outline" disabled={disabled || busy} onClick={() => run(() => cameraApi.recognizeFace())}>चिनजानको अनुहार</button>
-    </div>
-    <p className="assistive-result" role="status" aria-live="polite">{busy ? "प्रक्रिया हुँदैछ…" : result}</p>
-  </section>;
+
+  useEffect(() => {
+    return () => {
+      voiceCommandService.stop();
+    };
+  }, []);
+
+  return (
+    <section className="assistive-actions" aria-labelledby="assistive-actions-title">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+        <h2 id="assistive-actions-title" style={{ margin: 0 }}>सहायक कार्यहरू (Voice & On-Demand)</h2>
+        <button
+          type="button"
+          className={`btn ${isVoiceActive ? "btn-primary" : "btn-outline"}`}
+          onClick={toggleVoiceControl}
+          style={{ fontSize: "0.85rem", padding: "6px 12px" }}
+          aria-pressed={isVoiceActive}
+          aria-label={isVoiceActive ? "आवाज नियन्त्रण सक्रिय छ, बन्द गर्न क्लिक गर्नुहोस्" : "आवाज नियन्त्रण सुरु गर्नुहोस्"}
+        >
+          {isVoiceActive ? "🎙️ सुन्दैछ… (Voice ON)" : "🎤 आवाज नियन्त्रण (Voice Control)"}
+        </button>
+      </div>
+
+      <div className="detection-toolbar">
+        <button
+          className="btn btn-outline"
+          disabled={disabled || busy}
+          onClick={() => run(() => cameraApi.queryScene("के छ?"))}
+          aria-label="दृश्य विवरण: अगाडि के छ भन्नुहोस्"
+        >
+          👀 के छ?
+        </button>
+        <button
+          className="btn btn-outline"
+          disabled={disabled || busy}
+          onClick={() => run(() => cameraApi.identifyCurrency())}
+          aria-label="नेपाली मुद्रा पहिचान: नोट चिन्नुहोस्"
+        >
+          💵 नोट चिन्नुहोस्
+        </button>
+        <button
+          className="btn btn-outline"
+          disabled={disabled || busy}
+          onClick={() => run(() => cameraApi.readText())}
+          aria-label="अक्षर पढ्नुहोस्: साइनबोर्ड वा कागज पढ्नुहोस्"
+        >
+          📖 पढ्नुहोस्
+        </button>
+        <button
+          className="btn btn-outline"
+          disabled={disabled || busy}
+          onClick={() => run(() => cameraApi.saveLocationBookmark())}
+          aria-label="यो ठाउँ याद राख्नुहोस्: जीपीएस स्थान सुरक्षित गर्नुहोस्"
+        >
+          📍 ठाउँ याद राख
+        </button>
+        <button
+          className="btn btn-outline"
+          disabled={disabled || busy}
+          onClick={() => run(() => cameraApi.recognizeFace())}
+          aria-label="चिनजानको अनुहार पहिचान गर्नुहोस्"
+        >
+          👤 अनुहार
+        </button>
+        {onTriggerSOS && (
+          <button
+            type="button"
+            className="btn btn-outline"
+            disabled={disabled || busy}
+            onClick={onTriggerSOS}
+            style={{ borderColor: "rgba(239, 68, 68, 0.7)", color: "#fca5a5" }}
+            aria-label="आपतकालीन पूर्व-सूचना: १० सेकेन्ड काउन्टडाउन सुरु गर्नुहोस्"
+          >
+            🚨 आपतकालीन (SOS)
+          </button>
+        )}
+      </div>
+
+      {voiceError && (
+        <p style={{ color: "var(--accent-pink)", fontSize: "0.8rem", margin: "4px 0" }} role="alert">
+          {voiceError}
+        </p>
+      )}
+
+      {/* Screen Reader Optimized Live Announcement Region */}
+      <div aria-live="assertive" className="sr-only" role="status">
+        {busy ? "प्रक्रिया चल्दैछ…" : result}
+      </div>
+
+      <p className="assistive-result" role="status" aria-live="polite">
+        {busy ? "प्रक्रिया हुँदैछ…" : result}
+      </p>
+    </section>
+  );
 };

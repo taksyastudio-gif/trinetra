@@ -434,9 +434,15 @@ class CompositeSpeechBackend(SpeechBackend):
     def speak(self, text: str, interrupt: bool = False, language: Optional[str] = None) -> bool:
         """Routes text to the appropriate backend based on explicit language or Devanagari Unicode detection."""
         lang = (language or "").strip().lower()
-        is_nepali_lang = lang == "ne" or lang.startswith("ne-")
-        has_devanagari = any("\u0900" <= c <= "\u097f" for c in text)
+        has_devanagari = any("ऀ" <= c <= "ॿ" for c in text)
+        has_latin = any(("a" <= c <= "z") or ("A" <= c <= "Z") for c in text)
 
+        # If text is in Latin/English without Devanagari characters (e.g. "hello", "thank you"):
+        # Route to English SAPI so it speaks natural English instead of garbling through Devanagari phonemizer.
+        if has_latin and not has_devanagari:
+            return self.sapi_backend.speak(text, interrupt=interrupt)
+
+        is_nepali_lang = lang == "ne" or lang.startswith("ne-")
         if is_nepali_lang or has_devanagari:
             if self.piper_backend and self.piper_backend.has_voice_for_language("ne"):
                 return self.piper_backend.speak(text, interrupt=interrupt, language=language)

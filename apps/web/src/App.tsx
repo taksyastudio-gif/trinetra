@@ -1,766 +1,941 @@
-import { useEffect, useRef, useState } from 'react'
-import anime from 'animejs'
+import { useEffect, useState, useTransition } from "react";
+import logoSvg from "./assets/logo.svg";
+import statusData from "./data/status.json";
+import enTranslations from "./i18n/en.json";
+import neTranslations from "./i18n/ne.json";
+import {
+  APP_VERSION,
+  FIRMWARE_SOURCE_URL,
+  GITHUB_REPO_URL,
+  RELEASES_PAGE_URL,
+} from "./config";
+import {
+  detectOS,
+  fetchLatestRelease,
+  formatBytes,
+  formatDate,
+  type DetectedOS,
+  type LatestReleaseInfo,
+} from "./services/releases";
 
-/* ===== SVG Icon Component ===== */
-const TrinetraLogo = ({ size = 36 }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width={size} height={size}>
-    <defs>
-      <linearGradient id="eyeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: '#7c3aed' }} />
-        <stop offset="100%" style={{ stopColor: '#06b6d4' }} />
-      </linearGradient>
-      <linearGradient id="irisGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: '#06b6d4' }} />
-        <stop offset="100%" style={{ stopColor: '#7c3aed' }} />
-      </linearGradient>
-    </defs>
-    <ellipse cx="50" cy="50" rx="40" ry="28" fill="none" stroke="url(#eyeGrad)" strokeWidth="3" />
-    <circle cx="50" cy="50" r="16" fill="url(#irisGrad)" opacity="0.9" />
-    <circle cx="50" cy="50" r="7" fill="#050510" />
-    <circle cx="45" cy="45" r="3" fill="white" opacity="0.7" />
-    <circle cx="50" cy="18" r="4" fill="url(#eyeGrad)" opacity="0.8" />
-  </svg>
-)
-
-/* ===== Feature Data ===== */
-const features = [
-  {
-    icon: '👁️',
-    title: 'Scene Understanding',
-    titleNe: 'दृश्य बुझाइ',
-    desc: 'Powered by Gemini AI, Trinetra describes the full scene — people, actions, environment — not just objects.',
-  },
-  {
-    icon: '🗣️',
-    title: 'Nepali-First Speech',
-    titleNe: 'नेपाली बोली',
-    desc: 'Natural Nepali speech output via Piper neural TTS. Speaks in your language, locally, with zero cloud dependency.',
-  },
-  {
-    icon: '🎤',
-    title: 'Voice Commands',
-    titleNe: 'आवाज आदेश',
-    desc: '"के छ?" — Ask what\'s around you. Fully hands-free interaction designed for real-world use.',
-  },
-  {
-    icon: '💵',
-    title: 'Currency Recognition',
-    titleNe: 'नोट पहिचान',
-    desc: 'Instantly identify Nepali rupee denominations. Trained on real Nepal currency with offline AI models.',
-  },
-  {
-    icon: '🗺️',
-    title: 'Offline Navigation',
-    titleNe: 'अफलाइन नेभिगेसन',
-    desc: 'Built on OpenStreetMap data. Pedestrian routing that works in Kathmandu, Pokhara, or any village — no internet required.',
-  },
-  {
-    icon: '📳',
-    title: 'Haptic Feedback',
-    titleNe: 'कम्पन प्रतिक्रिया',
-    desc: 'Vibration patterns complement audio for noisy streets. Gentle pulse for distant obstacles, rapid buzz for danger.',
-  },
-  {
-    icon: '📷',
-    title: 'ESP32-CAM Wearable',
-    titleNe: 'पहिरने क्यामेरा',
-    desc: 'Affordable chest-mounted camera (~$5) streams video over WiFi. Open hardware design anyone can build.',
-  },
-  {
-    icon: '🆘',
-    title: 'Emergency SOS',
-    titleNe: 'आपतकालीन SOS',
-    desc: 'One voice command sends your GPS location to trusted contacts via SMS. Works without internet.',
-  },
-  {
-    icon: '🔒',
-    title: 'Privacy-First',
-    titleNe: 'गोपनीयता',
-    desc: 'All processing happens locally on your device. No cloud uploads, no tracking, no data collection. Ever.',
-  },
-]
-
-/* ===== Flow Steps ===== */
-const flowSteps = [
-  { icon: '📷', title: 'ESP32-CAM', desc: 'Chest-mounted camera captures surroundings' },
-  { icon: '📶', title: 'WiFi Stream', desc: 'Video streams to your phone wirelessly' },
-  { icon: '🧠', title: 'AI Processing', desc: 'On-device detection & scene understanding' },
-  { icon: '🔊', title: 'Audio/Haptic', desc: 'Nepali speech + vibration feedback' },
-]
-
-/* ===== Particles Background ===== */
-function Particles() {
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!containerRef.current) return
-    const container = containerRef.current
-    const particleCount = 30
-
-    for (let i = 0; i < particleCount; i++) {
-      const particle = document.createElement('div')
-      particle.className = 'particle'
-      particle.style.left = `${Math.random() * 100}%`
-      particle.style.top = `${Math.random() * 100}%`
-      const colors = ['#7c3aed', '#06b6d4', '#8b5cf6', '#14b8a6']
-      particle.style.background = colors[Math.floor(Math.random() * colors.length)]
-      particle.style.width = `${Math.random() * 3 + 1}px`
-      particle.style.height = particle.style.width
-      container.appendChild(particle)
-
-      anime({
-        targets: particle,
-        opacity: [0, () => Math.random() * 0.4 + 0.1, 0],
-        translateX: () => anime.random(-80, 80),
-        translateY: () => anime.random(-80, 80),
-        scale: [0, () => Math.random() + 0.5, 0],
-        duration: anime.random(4000, 8000),
-        delay: anime.random(0, 5000),
-        easing: 'easeInOutQuad',
-        loop: true,
-      })
-    }
-
-    return () => {
-      container.innerHTML = ''
-    }
-  }, [])
-
-  return <div className="particles-container" ref={containerRef} />
-}
-
-/* ===== Intersection Observer Hook ===== */
-function useScrollReveal(threshold = 0.15) {
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('animate-in')
-            observer.unobserve(entry.target)
-          }
-        })
-      },
-      { threshold }
-    )
-
-    const children = el.querySelectorAll('.feature-card, .flow-step, .flow-arrow, .stat-item, .arch-diagram, .download-card, .open-source-content')
-    children.forEach((child) => observer.observe(child))
-
-    return () => observer.disconnect()
-  }, [threshold])
-
-  return ref
-}
-
-/* ===== Main App ===== */
-const REPO_URL = 'https://github.com/taksyastudio-gif/trinetra'
-const RELEASES_URL = `${REPO_URL}/releases`
-const DESKTOP_EXE_DOWNLOAD_URL = `${REPO_URL}/releases/latest/download/trinetra-desktop.exe`
+type Language = "en" | "ne";
+type Theme = "dark" | "light";
+type StatusFilter = "all" | "working" | "experimental" | "planned";
 
 export default function App() {
-  const [scrolled, setScrolled] = useState(false)
-  const [activeModal, setActiveModal] = useState<'apk' | 'desktop' | null>(null)
-  const heroRef = useRef<HTMLDivElement>(null)
-  const sectionRef = useScrollReveal()
-
-  // Close modal on Escape
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setActiveModal(null)
+  const [lang, setLang] = useState<Language>(() => {
+    try {
+      const saved = localStorage.getItem("trinetra_lang");
+      if (saved === "ne" || saved === "en") return saved;
+      // Default to Nepali if user browser prefers Nepali, otherwise English
+      return navigator.language.startsWith("ne") ? "ne" : "en";
+    } catch {
+      return "en";
     }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  });
 
-  // Navbar scroll effect
+  const [theme, setTheme] = useState<Theme>(() => {
+    try {
+      const saved = localStorage.getItem("trinetra_theme");
+      if (saved === "light" || saved === "dark") return saved;
+      return window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    } catch {
+      return "dark";
+    }
+  });
+
+  const [release, setRelease] = useState<LatestReleaseInfo | null>(null);
+  const [releaseLoading, setReleaseLoading] = useState(true);
+  const [detectedOS] = useState<DetectedOS>(() => detectOS());
+  const [copiedSha, setCopiedSha] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [, startTransition] = useTransition();
+
+  const t = lang === "ne" ? neTranslations : enTranslations;
+
+  // Sync html lang and localStorage
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50)
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+    document.documentElement.lang = lang;
+    try {
+      localStorage.setItem("trinetra_lang", lang);
+    } catch {
+      // ignore
+    }
+  }, [lang]);
 
-  // Hero entrance animation
+  // Sync theme to root dataset and localStorage
   useEffect(() => {
-    if (!heroRef.current) return
+    document.documentElement.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem("trinetra_theme", theme);
+    } catch {
+      // ignore
+    }
+  }, [theme]);
 
-    const tl = anime.timeline({ easing: 'easeOutExpo' })
-
-    tl.add({
-      targets: '.hero-badge',
-      opacity: [0, 1],
-      translateY: [20, 0],
-      duration: 800,
-    })
-      .add({
-        targets: '.hero-title',
-        opacity: [0, 1],
-        translateY: [40, 0],
-        duration: 1000,
-      }, '-=500')
-      .add({
-        targets: '.hero-nepali',
-        opacity: [0, 1],
-        translateY: [30, 0],
-        duration: 800,
-      }, '-=600')
-      .add({
-        targets: '.hero-description',
-        opacity: [0, 1],
-        translateY: [30, 0],
-        duration: 800,
-      }, '-=500')
-      .add({
-        targets: '.hero-buttons',
-        opacity: [0, 1],
-        translateY: [20, 0],
-        duration: 800,
-      }, '-=500')
-      .add({
-        targets: '.scroll-indicator',
-        opacity: [0, 0.6],
-        translateY: [20, 0],
-        duration: 600,
-      }, '-=300')
-  }, [])
-
-  // Feature cards stagger animation on scroll
+  // Fetch release info client-side
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            anime({
-              targets: '.feature-card',
-              opacity: [0, 1],
-              translateY: [40, 0],
-              delay: anime.stagger(100),
-              duration: 800,
-              easing: 'easeOutCubic',
-            })
-            observer.unobserve(entry.target)
-          }
-        })
-      },
-      { threshold: 0.1 }
-    )
+    let isMounted = true;
+    fetchLatestRelease()
+      .then((data) => {
+        if (isMounted) {
+          setRelease(data);
+          setReleaseLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setReleaseLoading(false);
+        }
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-    const section = document.querySelector('.features')
-    if (section) observer.observe(section)
+  const toggleLanguage = () => {
+    const nextLang: Language = lang === "en" ? "ne" : "en";
+    startTransition(() => {
+      setLang(nextLang);
+    });
+    setAnnouncement(
+      nextLang === "ne"
+        ? "भाषा नेपालीमा परिवर्तन भयो"
+        : "Language changed to English"
+    );
+  };
 
-    return () => observer.disconnect()
-  }, [])
+  const toggleTheme = () => {
+    const nextTheme: Theme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    setAnnouncement(
+      t.live.themeChanged.replace("{theme}", nextTheme)
+    );
+  };
 
-  // Flow steps animation
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            anime({
-              targets: '.flow-step, .flow-arrow',
-              opacity: [0, 1],
-              translateY: [30, 0],
-              delay: anime.stagger(150),
-              duration: 700,
-              easing: 'easeOutCubic',
-            })
-            observer.unobserve(entry.target)
-          }
-        })
-      },
-      { threshold: 0.2 }
-    )
+  const handleCopyChecksum = async (sha: string) => {
+    try {
+      await navigator.clipboard.writeText(sha);
+      setCopiedSha(sha);
+      setAnnouncement(t.live.checksumCopied);
+      setTimeout(() => setCopiedSha(null), 3000);
+    } catch {
+      // Fallback
+    }
+  };
 
-    const section = document.querySelector('.how-it-works')
-    if (section) observer.observe(section)
+  // Primary OS download button logic
+  const getPrimaryDownloadAction = () => {
+    if (detectedOS === "Windows") {
+      if (release?.windowsAsset?.downloadUrl) {
+        return {
+          label: t.hero.downloadPrimary.replace("{os}", "Windows"),
+          url: release.windowsAsset.downloadUrl,
+          isDirectDownload: true,
+          size: formatBytes(release.windowsAsset.size),
+        };
+      }
+      return {
+        label: `${t.downloads.windows.title} (${t.status.workingBadge})`,
+        url: "#downloads",
+        isDirectDownload: false,
+        size: null,
+      };
+    }
 
-    return () => observer.disconnect()
-  }, [])
+    if (detectedOS === "Android") {
+      if (release?.androidAsset?.downloadUrl) {
+        return {
+          label: t.hero.downloadPrimary.replace("{os}", "Android (APK)"),
+          url: release.androidAsset.downloadUrl,
+          isDirectDownload: true,
+          size: formatBytes(release.androidAsset.size),
+        };
+      }
+      return {
+        label: `${t.downloads.android.title} (PWA)`,
+        url: "#downloads",
+        isDirectDownload: false,
+        size: null,
+      };
+    }
 
-  // Stats counter animation
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            anime({
-              targets: '.stat-item',
-              opacity: [0, 1],
-              translateY: [20, 0],
-              delay: anime.stagger(100),
-              duration: 600,
-              easing: 'easeOutCubic',
-            })
+    if (detectedOS === "iOS") {
+      return {
+        label: `${t.downloads.ios.title} (PWA)`,
+        url: "#downloads",
+        isDirectDownload: false,
+        size: null,
+      };
+    }
 
-            // Animate counter numbers
-            const counters = document.querySelectorAll('.stat-number[data-count]')
-            counters.forEach((el) => {
-              const target = parseInt(el.getAttribute('data-count') || '0', 10)
-              const obj = { value: 0 }
-              anime({
-                targets: obj,
-                value: target,
-                duration: 2000,
-                easing: 'easeOutExpo',
-                round: 1,
-                update: () => {
-                  el.textContent = obj.value.toString()
-                },
-              })
-            })
+    return {
+      label: t.hero.downloadFallback,
+      url: GITHUB_REPO_URL,
+      isDirectDownload: false,
+      size: null,
+    };
+  };
 
-            observer.unobserve(entry.target)
-          }
-        })
-      },
-      { threshold: 0.3 }
-    )
+  const primaryAction = getPrimaryDownloadAction();
 
-    const section = document.querySelector('.stats')
-    if (section) observer.observe(section)
-
-    return () => observer.disconnect()
-  }, [])
+  // Filtered status items
+  const filteredStatusItems = statusData.filter((item) => {
+    if (statusFilter === "all") return true;
+    return item.status === statusFilter;
+  });
 
   return (
     <>
-      <Particles />
-      <div className="bg-glow" />
+      {/* Screen Reader Live Region */}
+      <div
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {announcement}
+      </div>
 
-      {/* Navigation */}
-      <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
-        <div className="container">
-          <a href="#" className="nav-logo" aria-label="Trinetra Home">
-            <TrinetraLogo size={36} />
-            <span>Trinetra</span>
+      {/* Skip to Content Link */}
+      <a href="#main-content" className="skip-link">
+        {t.nav.skipToContent}
+      </a>
+
+      {/* Site Header */}
+      <header className="site-header" role="banner">
+        <div className="container header-inner">
+          <a href="#" className="brand-link" aria-label="Trinetra Home">
+            <img
+              src={logoSvg}
+              alt=""
+              aria-hidden="true"
+              className="brand-logo"
+              width="32"
+              height="32"
+            />
+            <div className="brand-wordmark">
+              <span>{t.nav.wordmarkLatin}</span>
+              <span className="brand-devanagari">
+                {t.nav.wordmarkDevanagari}
+              </span>
+            </div>
           </a>
-          <div className="nav-links">
-            <a href="#features">Features</a>
-            <a href="#how-it-works">How it Works</a>
-            <a href="#architecture">Architecture</a>
-            <a href="#open-source">Open Source</a>
-            <button onClick={() => setActiveModal('apk')} className="nav-cta">Download</button>
-          </div>
-          <button className="mobile-menu-btn" aria-label="Toggle menu">
-            <span /><span /><span />
-          </button>
-        </div>
-      </nav>
 
-      {/* Hero */}
-      <section className="hero" ref={heroRef}>
-        <div className="hero-eye" aria-hidden="true">
-          <div className="eye-outer" />
-          <div className="eye-iris" />
-          <div className="eye-pupil" />
-        </div>
-
-        <div className="hero-content">
-          <div className="hero-badge">
-            <span className="dot" />
-            Open Source • Made in Nepal 🇳🇵
-          </div>
-
-          <h1 className="hero-title">
-            Your <span className="gradient-text">Third Eye</span>
-          </h1>
-
-          <p className="hero-nepali nepali">
-            त्रिनेत्र — तपाईंको तेस्रो आँखा
-          </p>
-
-          <p className="hero-description">
-            An open-source assistive vision platform that helps blind and visually impaired
-            individuals perceive the world through AI-powered scene understanding, Nepali speech,
-            and affordable wearable hardware.
-          </p>
-
-            <div className="hero-buttons">
-            <button onClick={() => setActiveModal('desktop')} className="btn-primary">
-              💻 Desktop & Hardware Suite
-            </button>
-            <button onClick={() => setActiveModal('apk')} className="btn-secondary">
-              📱 Mobile App (Android)
-            </button>
-            <a
-              href={REPO_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary"
-            >
-              ⭐ GitHub
+          <nav className="site-nav" role="navigation" aria-label="Main Navigation">
+            <a href="#downloads" className="nav-link">
+              {t.nav.downloads}
             </a>
+            <a href="#how-it-works" className="nav-link">
+              {t.nav.howItWorks}
+            </a>
+            <a href="#status" className="nav-link">
+              {t.nav.status}
+            </a>
+            <a href="#privacy" className="nav-link">
+              {t.nav.privacy}
+            </a>
+            <a href="#changelog" className="nav-link">
+              {t.nav.changelog}
+            </a>
+          </nav>
+
+          <div className="header-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={toggleLanguage}
+              aria-label={t.nav.toggleLanguage}
+            >
+              {lang === "en" ? "नेपाली" : "English"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-icon"
+              onClick={toggleTheme}
+              aria-label={t.nav.toggleTheme}
+              title={t.nav.toggleTheme}
+            >
+              {theme === "dark" ? (
+                // Sun Icon
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="5" />
+                  <line x1="12" y1="1" x2="12" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="23" />
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                  <line x1="1" y1="12" x2="3" y2="12" />
+                  <line x1="21" y1="12" x2="23" y2="12" />
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+              ) : (
+                // Moon Icon
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
+      </header>
 
-        <div className="scroll-indicator" aria-hidden="true">
-          <span>Scroll</span>
-          <div className="scroll-line" />
-        </div>
-      </section>
+      {/* Main Content Landmark */}
+      <main id="main-content" tabIndex={-1}>
+        {/* Section 1: Hero */}
+        <section className="section hero-section" aria-labelledby="hero-title">
+          <div className="container hero-content">
+            <div className="hero-tag">
+              <span aria-hidden="true">🇳🇵</span>
+              <span>
+                {t.hero.osDetected.replace("{os}", detectedOS)}
+              </span>
+            </div>
 
-      {/* Features */}
-      <section className="features" id="features" ref={sectionRef}>
-        <div className="container">
-          <div className="section-header">
-            <span className="section-label">Features</span>
-            <h2 className="section-title">
-              Built for <span className="gradient-text">Real Life</span>
-            </h2>
-            <p className="section-subtitle">
-              Every feature designed with input from the visually impaired community in Nepal.
-            </p>
+            <h1 id="hero-title" className="hero-title">
+              {t.hero.tagline}
+            </h1>
+
+            <p className="hero-desc">{t.hero.description}</p>
+
+            <div className="hero-cta">
+              <a
+                href={primaryAction.url}
+                className="btn btn-primary btn-large"
+                {...(primaryAction.isDirectDownload
+                  ? { download: "" }
+                  : {})}
+              >
+                {primaryAction.label}
+              </a>
+
+              <p className="hero-release-info">
+                {t.hero.versionInfo.replace(
+                  "{version}",
+                  release?.version || APP_VERSION
+                )}
+                {primaryAction.size ? ` • ${primaryAction.size}` : ""}
+              </p>
+
+              <a href="#downloads" className="hero-alt-link">
+                {t.hero.otherPlatforms}
+              </a>
+            </div>
           </div>
+        </section>
 
-          <div className="features-grid">
-            {features.map((f, i) => (
-              <div className="feature-card" key={i}>
-                <div className="feature-icon">{f.icon}</div>
-                <h3>
-                  {f.title} <span className="nepali" style={{ opacity: 0.6, fontSize: '0.9em' }}>({f.titleNe})</span>
-                </h3>
-                <p>{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        {/* Section 2: Downloads */}
+        <section id="downloads" className="section" aria-labelledby="downloads-title">
+          <div className="container">
+            <div className="section-header">
+              <h2 id="downloads-title" className="section-title">
+                {t.downloads.title}
+              </h2>
+              <p className="section-subtitle">{t.downloads.subtitle}</p>
+            </div>
 
-      {/* How It Works */}
-      <section className="how-it-works" id="how-it-works">
-        <div className="container">
-          <div className="section-header">
-            <span className="section-label">How it Works</span>
-            <h2 className="section-title">
-              From <span className="gradient-text">Camera to Voice</span>
-            </h2>
-            <p className="section-subtitle">
-              A simple, affordable pipeline that turns vision into spoken awareness.
-            </p>
-          </div>
-
-          <div className="how-it-works-flow">
-            {flowSteps.map((step, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
-                <div className="flow-step">
-                  <div className="flow-step-icon">{step.icon}</div>
-                  <h4>{step.title}</h4>
-                  <p>{step.desc}</p>
+            <div className="cards-grid">
+              {/* Windows Card */}
+              <div className="card">
+                <div className="card-icon" aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                    <line x1="8" y1="21" x2="16" y2="21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
+                  </svg>
                 </div>
-                {i < flowSteps.length - 1 && (
-                  <div className="flow-arrow" aria-hidden="true">→</div>
+                <h3 className="card-title">{t.downloads.windows.title}</h3>
+                <p className="card-desc">{t.downloads.windows.subtitle}</p>
+
+                <div className="card-meta">
+                  <div className="meta-row">
+                    <span className="meta-label">
+                      {t.downloads.versionLabel}
+                    </span>
+                    <span className="meta-value">
+                      v{release?.version || APP_VERSION}
+                    </span>
+                  </div>
+                  <div className="meta-row">
+                    <span className="meta-label">{t.downloads.dateLabel}</span>
+                    <span className="meta-value">
+                      {release?.publishedAt
+                        ? formatDate(release.publishedAt)
+                        : "Nov 2026"}
+                    </span>
+                  </div>
+                  <div className="meta-row">
+                    <span className="meta-label">{t.downloads.sizeLabel}</span>
+                    <span className="meta-value">
+                      {release?.windowsAsset?.size
+                        ? formatBytes(release.windowsAsset.size)
+                        : "~120 MB"}
+                    </span>
+                  </div>
+                  {release?.windowsAsset?.checksum && (
+                    <div className="checksum-box">
+                      <span className="checksum-hash" title={release.windowsAsset.checksum}>
+                        {release.windowsAsset.checksum.slice(0, 16)}...
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{ minHeight: "32px", padding: "0.2rem 0.6rem", fontSize: "0.75rem" }}
+                        onClick={() =>
+                          handleCopyChecksum(release.windowsAsset!.checksum!)
+                        }
+                      >
+                        {copiedSha === release.windowsAsset.checksum
+                          ? t.downloads.copiedChecksum
+                          : t.downloads.copyChecksum}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {release?.windowsAsset?.downloadUrl ? (
+                  <a
+                    href={release.windowsAsset.downloadUrl}
+                    className="btn btn-primary"
+                    download
+                  >
+                    {t.downloads.windows.downloadButton}
+                  </a>
+                ) : (
+                  <a
+                    href={`${GITHUB_REPO_URL}#readme`}
+                    className="btn btn-secondary"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {t.downloads.windows.sourceButton}
+                  </a>
                 )}
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* Stats */}
-      <section className="stats">
+              {/* Android Card */}
+              <div className="card">
+                <div className="card-icon" aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                    <line x1="12" y1="18" x2="12.01" y2="18" />
+                  </svg>
+                </div>
+                <h3 className="card-title">{t.downloads.android.title}</h3>
+                <p className="card-desc">{t.downloads.android.subtitle}</p>
+
+                <div className="card-meta">
+                  <strong style={{ marginBottom: "0.25rem", color: "var(--text-primary)" }}>
+                    {t.downloads.android.guideTitle}
+                  </strong>
+                  <p style={{ margin: "0.2rem 0" }}>{t.downloads.android.step1}</p>
+                  <p style={{ margin: "0.2rem 0" }}>{t.downloads.android.step2}</p>
+                  <p style={{ margin: "0.2rem 0" }}>{t.downloads.android.step3}</p>
+                </div>
+
+                {release?.androidAsset?.downloadUrl ? (
+                  <a
+                    href={release.androidAsset.downloadUrl}
+                    className="btn btn-primary"
+                    download
+                  >
+                    Download APK ({formatBytes(release.androidAsset.size)})
+                  </a>
+                ) : (
+                  <p style={{ fontSize: "0.8125rem", color: "var(--text-tertiary)" }}>
+                    {t.downloads.android.apkNote}
+                  </p>
+                )}
+              </div>
+
+              {/* iOS Card */}
+              <div className="card">
+                <div className="card-icon" aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z" />
+                    <path d="M12 6v6l4 2" />
+                  </svg>
+                </div>
+                <h3 className="card-title">{t.downloads.ios.title}</h3>
+                <p className="card-desc">{t.downloads.ios.subtitle}</p>
+
+                <div className="card-meta">
+                  <strong style={{ marginBottom: "0.25rem", color: "var(--text-primary)" }}>
+                    {t.downloads.ios.guideTitle}
+                  </strong>
+                  <p style={{ margin: "0.2rem 0" }}>{t.downloads.ios.step1}</p>
+                  <p style={{ margin: "0.2rem 0" }}>{t.downloads.ios.step2}</p>
+                  <p style={{ margin: "0.2rem 0" }}>{t.downloads.ios.step3}</p>
+                </div>
+              </div>
+
+              {/* ESP32-CAM Firmware Card */}
+              <div className="card">
+                <div className="card-icon" aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                    <circle cx="12" cy="13" r="3" />
+                  </svg>
+                </div>
+                <h3 className="card-title">{t.downloads.firmware.title}</h3>
+                <p className="card-desc">{t.downloads.firmware.subtitle}</p>
+
+                <div className="card-meta">
+                  <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                    {t.downloads.firmware.instructions}
+                  </p>
+                </div>
+
+                <a
+                  href={FIRMWARE_SOURCE_URL}
+                  className="btn btn-primary"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {t.downloads.firmware.actionButton}
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 3: How It Works */}
+        <section id="how-it-works" className="section" aria-labelledby="how-title">
+          <div className="container">
+            <div className="section-header">
+              <h2 id="how-title" className="section-title">
+                {t.howItWorks.title}
+              </h2>
+              <p className="section-subtitle">{t.howItWorks.subtitle}</p>
+            </div>
+
+            <div className="steps-grid">
+              {/* Step 1 */}
+              <div className="step-card">
+                <div className="step-illustration" aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="44"
+                    height="44"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                </div>
+                <h3 className="step-title">{t.howItWorks.step1Title}</h3>
+                <p className="step-desc">{t.howItWorks.step1Desc}</p>
+              </div>
+
+              {/* Step 2 */}
+              <div className="step-card">
+                <div className="step-illustration" aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="44"
+                    height="44"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="4" y="4" width="16" height="16" rx="2" />
+                    <rect x="9" y="9" width="6" height="6" />
+                    <line x1="9" y1="1" x2="9" y2="4" />
+                    <line x1="15" y1="1" x2="15" y2="4" />
+                    <line x1="9" y1="20" x2="9" y2="23" />
+                    <line x1="15" y1="20" x2="15" y2="23" />
+                    <line x1="20" y1="9" x2="23" y2="9" />
+                    <line x1="20" y1="15" x2="23" y2="15" />
+                    <line x1="1" y1="9" x2="4" y2="9" />
+                    <line x1="1" y1="15" x2="4" y2="15" />
+                  </svg>
+                </div>
+                <h3 className="step-title">{t.howItWorks.step2Title}</h3>
+                <p className="step-desc">{t.howItWorks.step2Desc}</p>
+              </div>
+
+              {/* Step 3 */}
+              <div className="step-card">
+                <div className="step-illustration" aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="44"
+                    height="44"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  </svg>
+                </div>
+                <h3 className="step-title">{t.howItWorks.step3Title}</h3>
+                <p className="step-desc">{t.howItWorks.step3Desc}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 4: What Works Today, Honestly */}
+        <section id="status" className="section" aria-labelledby="status-title">
+          <div className="container">
+            <div className="section-header">
+              <h2 id="status-title" className="section-title">
+                {t.status.title}
+              </h2>
+              <p className="section-subtitle">{t.status.subtitle}</p>
+            </div>
+
+            {/* Filter controls */}
+            <div
+              className="status-filters"
+              role="group"
+              aria-label="Filter features by status"
+            >
+              {(
+                [
+                  { key: "all", label: t.status.filterAll },
+                  { key: "working", label: t.status.filterWorking },
+                  { key: "experimental", label: t.status.filterExperimental },
+                  { key: "planned", label: t.status.filterPlanned },
+                ] as const
+              ).map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  className="filter-btn"
+                  aria-pressed={statusFilter === f.key}
+                  onClick={() => setStatusFilter(f.key)}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="status-grid">
+              {filteredStatusItems.map((item) => {
+                const name = lang === "ne" ? item.name_ne : item.name_en;
+                const note = lang === "ne" ? item.note_ne : item.note_en;
+                const badgeLabel =
+                  item.status === "working"
+                    ? t.status.workingBadge
+                    : item.status === "experimental"
+                    ? t.status.experimentalBadge
+                    : t.status.plannedBadge;
+
+                return (
+                  <div key={item.id} className="status-card">
+                    <div className="status-header">
+                      <h3 className="status-name">{name}</h3>
+                      <span
+                        className={`status-badge badge-${item.status}`}
+                        aria-label={`Status: ${badgeLabel}`}
+                      >
+                        {badgeLabel}
+                      </span>
+                    </div>
+                    <p className="status-note">{note}</p>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="benchmarks-callout">
+              <strong>{lang === "ne" ? "परीक्षण टिप्पणी:" : "Benchmark Calibration Note:"}</strong>{" "}
+              {t.status.benchmarksNote}
+            </div>
+          </div>
+        </section>
+
+        {/* Section 5: Accessibility & Privacy */}
+        <section id="privacy" className="section" aria-labelledby="privacy-title">
+          <div className="container">
+            <div className="section-header">
+              <h2 id="privacy-title" className="section-title">
+                {t.privacy.title}
+              </h2>
+              <p className="section-subtitle">{t.privacy.subtitle}</p>
+            </div>
+
+            <div className="cards-grid">
+              <div className="card">
+                <div className="card-icon" aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                </div>
+                <h3 className="card-title">{t.privacy.offlineTitle}</h3>
+                <p className="card-desc">{t.privacy.offlineDesc}</p>
+              </div>
+
+              <div className="card">
+                <div className="card-icon" aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                  </svg>
+                </div>
+                <h3 className="card-title">{t.privacy.screenReaderTitle}</h3>
+                <p className="card-desc">{t.privacy.screenReaderDesc}</p>
+              </div>
+
+              <div className="card">
+                <div className="card-icon" aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="2" y="4" width="20" height="16" rx="2" />
+                    <line x1="6" y1="8" x2="6.01" y2="8" />
+                    <line x1="10" y1="8" x2="10.01" y2="8" />
+                    <line x1="14" y1="8" x2="14.01" y2="8" />
+                    <line x1="18" y1="8" x2="18.01" y2="8" />
+                    <line x1="8" y1="12" x2="8.01" y2="12" />
+                    <line x1="12" y1="12" x2="12.01" y2="12" />
+                    <line x1="16" y1="12" x2="16.01" y2="12" />
+                    <line x1="7" y1="16" x2="17" y2="16" />
+                  </svg>
+                </div>
+                <h3 className="card-title">{t.privacy.keyboardTitle}</h3>
+                <p className="card-desc">{t.privacy.keyboardDesc}</p>
+              </div>
+
+              <div className="card">
+                <div className="card-icon" aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 2a10 10 0 0 1 0 20z" />
+                  </svg>
+                </div>
+                <h3 className="card-title">{t.privacy.contrastTitle}</h3>
+                <p className="card-desc">{t.privacy.contrastDesc}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 6: Changelog */}
+        <section id="changelog" className="section" aria-labelledby="changelog-title">
+          <div className="container">
+            <div className="section-header">
+              <h2 id="changelog-title" className="section-title">
+                {t.changelog.title}
+              </h2>
+              <p className="section-subtitle">{t.changelog.subtitle}</p>
+            </div>
+
+            <div className="changelog-box">
+              {releaseLoading ? (
+                <p style={{ textAlign: "center", color: "var(--text-secondary)" }}>
+                  {t.changelog.loading}
+                </p>
+              ) : release?.hasRelease ? (
+                <>
+                  <div className="changelog-header">
+                    <span className="changelog-tag">{release.name}</span>
+                    <span className="changelog-date">
+                      {t.changelog.releasedOn.replace(
+                        "{date}",
+                        formatDate(release.publishedAt)
+                      )}
+                    </span>
+                  </div>
+                  <div className="changelog-body">
+                    {release.body || "Performance improvements and bug fixes."}
+                  </div>
+                  <div style={{ marginTop: "1.5rem" }}>
+                    <a
+                      href={release.htmlUrl}
+                      className="btn btn-secondary"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {t.changelog.viewRelease}
+                    </a>
+                  </div>
+                </>
+              ) : (
+                <div style={{ textAlign: "center" }}>
+                  <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>
+                    {t.changelog.noReleases}
+                  </p>
+                  <a
+                    href={RELEASES_PAGE_URL}
+                    className="btn btn-secondary"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {t.downloads.viewAllReleases}
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer Landmark */}
+      <footer className="site-footer" role="contentinfo">
         <div className="container">
-          <div className="stats-grid">
-            <div className="stat-item">
-              <div className="stat-number" data-count="35">0</div>
-              <div className="stat-label">ms Detection Latency</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number">{'<'}$<span data-count="15">0</span></div>
-              <div className="stat-label">Hardware Cost</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number" data-count="100">0</div>
-              <div className="stat-label">% Offline Capable</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number" data-count="0">0</div>
-              <div className="stat-label">Data Sent to Cloud</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Architecture */}
-      <section className="architecture" id="architecture">
-        <div className="container">
-          <div className="section-header">
-            <span className="section-label">Architecture</span>
-            <h2 className="section-title">
-              Modular & <span className="gradient-text">Open</span>
-            </h2>
-            <p className="section-subtitle">
-              Every component is decoupled, replaceable, and privacy-safe.
-            </p>
+          <div className="disclaimer-banner" role="note">
+            ⚠️ {t.footer.disclaimer}
           </div>
 
-          <div className="arch-diagram">
-            <div className="arch-layer">
-              <div className="arch-node highlight">📷 ESP32-CAM</div>
-            </div>
-            <div className="arch-connector">↓ WiFi Stream</div>
-            <div className="arch-layer">
-              <div className="arch-node highlight">📱 Expo Mobile App</div>
-              <div className="arch-node">💻 Desktop (Tauri 2)</div>
-            </div>
-            <div className="arch-connector">↓ Local Processing</div>
-            <div className="arch-layer">
-              <div className="arch-node">🧠 YOLOX-Nano</div>
-              <div className="arch-node">✨ Gemini API</div>
-              <div className="arch-node">🗺️ OSM Maps</div>
-            </div>
-            <div className="arch-connector">↓ Output</div>
-            <div className="arch-layer">
-              <div className="arch-node">🔊 Piper TTS</div>
-              <div className="arch-node">📳 Haptics</div>
-              <div className="arch-node">🆘 SOS</div>
-            </div>
-          </div>
-        </div>
-      </section>
+          <nav className="footer-nav" aria-label="Footer Navigation">
+            <a
+              href={GITHUB_REPO_URL}
+              className="footer-link"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t.footer.github}
+            </a>
+            <a
+              href={FIRMWARE_SOURCE_URL}
+              className="footer-link"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t.footer.firmware}
+            </a>
+            <a
+              href={RELEASES_PAGE_URL}
+              className="footer-link"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t.footer.releases}
+            </a>
+            <a
+              href={`${GITHUB_REPO_URL}/issues`}
+              className="footer-link"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t.footer.reportIssue}
+            </a>
+          </nav>
 
-      {/* Download CTA */}
-      <section className="download" id="download">
-        <div className="container">
-          <div className="download-card">
-            <h2>
-              <span className="nepali">त्रिनेत्र</span> Download
-            </h2>
-            <p>
-              Get the latest version of Trinetra on your Android device. 
-              The app auto-updates — install once, always stay current.
-            </p>
-            <div className="download-buttons">
-              <button onClick={() => setActiveModal('apk')} className="btn-primary">
-                📱 Download APK
-              </button>
-              <button onClick={() => setActiveModal('desktop')} className="btn-secondary">
-                💻 Desktop App
-              </button>
-            </div>
-            <div className="download-badge">
-              ✨ Auto-updates via EAS Update on every release
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Open Source */}
-      <section className="open-source" id="open-source">
-        <div className="container">
-          <div className="section-header">
-            <span className="section-label">Open Source</span>
-            <h2 className="section-title">
-              Built by the <span className="gradient-text">Community</span>
-            </h2>
-          </div>
-
-          <div className="open-source-content">
-            <p>
-              Trinetra is 100% open source under MIT License. We believe assistive technology
-              should be free, accessible, and community-driven. Whether you're a developer,
-              designer, hardware tinkerer, or someone who wants to help — you're welcome.
-            </p>
-            <p className="nepali" style={{ fontSize: '1.1rem', color: '#8b5cf6' }}>
-              सबैका लागि, सबैबाट — यो तपाईंको पनि परियोजना हो।
-            </p>
-            <div style={{ marginTop: '32px', display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <a
-                href={REPO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary"
-              >
-                🐙 View on GitHub
-              </a>
-              <a
-                href={`${REPO_URL}#readme`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary"
-              >
-                📖 Read the Docs
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-left">
-            <TrinetraLogo size={28} />
-            <span>Trinetra</span>
-          </div>
-          <div className="footer-links">
-            <a href={REPO_URL} target="_blank" rel="noopener noreferrer">GitHub</a>
-            <a href="#features">Features</a>
-            <button onClick={() => setActiveModal('apk')} style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-              Download
-            </button>
-          </div>
-          <div className="footer-right">
-            Made with ❤️ in Nepal 🇳🇵 • Open Source
+          <div className="footer-bottom">
+            <span>{t.footer.copyright}</span>
+            <span>{t.footer.license}</span>
           </div>
         </div>
       </footer>
-
-      {/* Download Modal */}
-      {activeModal && (
-        <div className="modal-backdrop" onClick={() => setActiveModal(null)} role="dialog" aria-modal="true">
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="modal-close-btn"
-              onClick={() => setActiveModal(null)}
-              aria-label="Close dialog"
-            >
-              ✕
-            </button>
-
-            {activeModal === 'apk' ? (
-              <>
-                <div className="modal-header">
-                  <h3>📱 Download Trinetra for Android</h3>
-                  <p className="nepali" style={{ color: 'var(--accent-cyan)' }}>
-                    त्रिनेत्र एन्ड्रोइड एप डाउनलोड गर्नुहोस्
-                  </p>
-                  <p style={{ marginTop: '8px' }}>
-                    Install the APK directly onto your Android device. Once installed, future updates are delivered over-the-air seamlessly.
-                  </p>
-                </div>
-
-                <div className="modal-options">
-                  <a
-                    href={RELEASES_URL}
-                    className="download-option-card"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <div className="download-option-info">
-                      <span className="option-icon">📦</span>
-                      <div>
-                        <h4>GitHub Releases (Pre-Release)</h4>
-                        <span>Download APK & inspect release builds</span>
-                      </div>
-                    </div>
-                    <span className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-                      Releases ↗
-                    </span>
-                  </a>
-                </div>
-
-                <div className="modal-steps" style={{ borderColor: 'rgba(236, 72, 153, 0.4)', background: 'rgba(236, 72, 153, 0.05)' }}>
-                  <h5 style={{ color: 'var(--accent-pink)' }}>⚠️ Note for Teammates & Testers</h5>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                    The Android APK build pipeline is currently being initialized. Once our first mobile build passes CI, the ready-to-install <code>trinetra.apk</code> will be directly downloadable here and on the Releases page!
-                  </p>
-                </div>
-
-                <div className="modal-steps">
-                  <h5>Installation Guide (३ सजिला चरणहरू)</h5>
-                  <ol>
-                    <li>Tap <strong>Direct APK Download</strong> to save <code>trinetra.apk</code> to your device.</li>
-                    <li>Open your Downloads folder, tap the file, and toggle <strong>"Allow from this source"</strong> if prompted.</li>
-                    <li>Open Trinetra! Any new push to GitHub will automatically stream updates to your app without reinstalling.</li>
-                  </ol>
-                </div>
-
-                <div className="modal-footer">
-                  🔒 100% Free & Open Source • Zero Cloud Analytics
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="modal-header">
-                  <h3>💻 Trinetra Desktop & Hardware Suite</h3>
-                  <p className="nepali" style={{ color: 'var(--accent-purple)' }}>
-                    हार्डवेयर विकास र परीक्षण सुइट (Tauri 2 + Python Vision Engine)
-                  </p>
-                  <p style={{ marginTop: '8px' }}>
-                    Real-time visual feed, ESP32-CAM stream receiver, AI obstacle detection, and live audio guidance on Windows.
-                  </p>
-                </div>
-
-                <div className="modal-options">
-                  <a
-                    href={DESKTOP_EXE_DOWNLOAD_URL}
-                    className="download-option-card"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <div className="download-option-info">
-                      <span className="option-icon">🪟</span>
-                      <div>
-                        <h4>Download Desktop Executable (.exe)</h4>
-                        <span>v0.1.0 Standalone Windows App • No setup required</span>
-                      </div>
-                    </div>
-                    <span className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-                      Download EXE ↓
-                    </span>
-                  </a>
-
-                  <a
-                    href={`${REPO_URL}/blob/master/hardware/firmware/esp32-cam/trinetra_esp32_cam.ino`}
-                    className="download-option-card"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <div className="download-option-info">
-                      <span className="option-icon">📷</span>
-                      <div>
-                        <h4>ESP32-CAM Firmware (.ino)</h4>
-                        <span>Flash AI-Thinker module with low-latency MJPEG stream</span>
-                      </div>
-                    </div>
-                    <span className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-                      Get Code ↗
-                    </span>
-                  </a>
-
-                  <a
-                    href={`${REPO_URL}/archive/refs/heads/master.zip`}
-                    className="download-option-card"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <div className="download-option-info">
-                      <span className="option-icon">📦</span>
-                      <div>
-                        <h4>Download Source (.zip)</h4>
-                        <span>Complete workstation with 1-click launcher</span>
-                      </div>
-                    </div>
-                    <span className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-                      Download ZIP ↓
-                    </span>
-                  </a>
-                </div>
-
-                <div className="modal-steps">
-                  <h5>⚡ 1-Click Hardware Test (Hardware Teammates)</h5>
-                  <ol>
-                    <li>Clone or download repository: <code>git clone {REPO_URL}.git</code></li>
-                    <li>Double-click <strong><code>start-trinetra.bat</code></strong> in the project folder.</li>
-                    <li>In the desktop window, switch to <strong>"📡 Network Stream (ESP32-CAM)"</strong> tab.</li>
-                    <li>Enter your ESP32-CAM stream URL (e.g. <code>http://192.168.1.100:81/stream</code>) and click <strong>Start Camera</strong>!</li>
-                  </ol>
-                </div>
-
-                <div className="modal-footer">
-                  Runs 100% offline at 127.0.0.1 with zero cloud uploads
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </>
-  )
+  );
 }

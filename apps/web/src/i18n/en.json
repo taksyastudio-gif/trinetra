@@ -1,0 +1,123 @@
+{
+  "nav": {
+    "skipToContent": "Skip to main content",
+    "wordmarkLatin": "Trinetra",
+    "wordmarkDevanagari": "त्रिनेत्र",
+    "downloads": "Downloads",
+    "howItWorks": "How It Works",
+    "status": "What Works",
+    "privacy": "Privacy & A11y",
+    "changelog": "Changelog",
+    "toggleTheme": "Toggle color theme",
+    "toggleLanguage": "नेपालीमा पढ्नुहोस्",
+    "languageCurrent": "English"
+  },
+  "hero": {
+    "tagline": "Your Third Eye — Open-Source Assistive Vision for Nepal",
+    "description": "Trinetra provides real-time spoken guidance for blind, low-vision, deaf, and hard-of-hearing individuals. Runs completely on-device with zero cloud latency and total privacy.",
+    "downloadPrimary": "Download for {os}",
+    "downloadUnavailable": "Download Not Yet Published",
+    "downloadFallback": "View Source on GitHub",
+    "versionInfo": "Version {version} • 64-bit Offline Engine • SHA-256 Verified",
+    "otherPlatforms": "View all platforms & installation guides",
+    "osDetected": "Detected: {os}"
+  },
+  "downloads": {
+    "title": "Downloads & Installation",
+    "subtitle": "Choose your platform. Everything runs offline on your own hardware.",
+    "noReleaseNotice": "No binary installer has been published yet. Follow the source build guide or download the firmware below.",
+    "viewAllReleases": "View Releases on GitHub",
+    "copyChecksum": "Copy SHA-256",
+    "copiedChecksum": "Copied!",
+    "shaLabel": "SHA-256:",
+    "sizeLabel": "Size:",
+    "dateLabel": "Published:",
+    "versionLabel": "Version:",
+    "windows": {
+      "title": "Windows Desktop",
+      "subtitle": "Standalone 64-bit installer with embedded offline vision engine.",
+      "downloadButton": "Download Windows Installer (.exe)",
+      "sourceButton": "Build from Source Guide",
+      "requirements": "Requires Windows 10 or 11 (64-bit). No GPU required."
+    },
+    "android": {
+      "title": "Android Mobile",
+      "subtitle": "Installable Progressive Web App (PWA) with high-contrast UI.",
+      "guideTitle": "How to install on Android:",
+      "step1": "Open this website in Google Chrome on your Android phone.",
+      "step2": "Tap the browser menu (⋮) in the top-right corner.",
+      "step3": "Tap 'Install app' or 'Add to Home screen' and confirm.",
+      "apkNote": "Direct offline APK will be available once the mobile build is signed."
+    },
+    "ios": {
+      "title": "Apple iOS (iPhone / iPad)",
+      "subtitle": "Safari Progressive Web App with screen reader & VoiceOver integration.",
+      "guideTitle": "How to install on iPhone:",
+      "step1": "Open this website in Safari on your iPhone or iPad.",
+      "step2": "Tap the Share button (square icon with an upward arrow) at the bottom.",
+      "step3": "Scroll down and tap 'Add to Home Screen', then tap 'Add' to confirm."
+    },
+    "firmware": {
+      "title": "ESP32-CAM Wearable Firmware",
+      "subtitle": "Open-source Arduino sketch for chest-mount or spectacle camera streaming.",
+      "actionButton": "View Firmware Source (.ino)",
+      "instructions": "Flash to an AI-Thinker ESP32-CAM module using Arduino IDE at 115200 baud over 2.4GHz Wi-Fi."
+    }
+  },
+  "howItWorks": {
+    "title": "How Trinetra Works",
+    "subtitle": "From raw visual input to spoken Nepali guidance in three real-time steps.",
+    "step1Title": "1. Visual Capture",
+    "step1Desc": "Streams real-time frames from your computer webcam or a lightweight wearable ESP32-CAM.",
+    "step2Title": "2. On-Device Perception",
+    "step2Desc": "Neural models analyze ground drop-offs, dangling cables, bus route boards, and Nepali currency offline.",
+    "step3Title": "3. Spoken & Visual Feedback",
+    "step3Desc": "Speaks immediate directional warnings in natural Nepali and renders visual subtitles for deaf users."
+  },
+  "status": {
+    "title": "What Works Today — Real & Honest Status",
+    "subtitle": "Assistive software must be completely honest about its capabilities. Every metric below is calibrated from held-out benchmark splits.",
+    "filterAll": "All Capabilities",
+    "filterWorking": "Operational",
+    "filterExperimental": "Experimental",
+    "filterPlanned": "Planned",
+    "workingBadge": "Operational",
+    "experimentalBadge": "Experimental",
+    "plannedBadge": "Planned",
+    "benchmarksNote": "Benchmarks: Currency top-1 baseline accuracy is 17.4% on worn physical notes (safely gated with spoken uncertainty at 0.70 confidence). Devanagari OCR Character Error Rate (CER) is 1.0157 with 3.1% exact match on weathered street signs (gated at 0.45 confidence)."
+  },
+  "privacy": {
+    "title": "Accessibility & Privacy by Design",
+    "subtitle": "Built specifically for users with visual, auditory, and mobility impairments.",
+    "offlineTitle": "100% Offline & Private",
+    "offlineDesc": "All computer vision, speech synthesis, and QR parsing execute locally on your CPU. No camera feed or audio ever leaves your computer.",
+    "screenReaderTitle": "Screen Reader First",
+    "screenReaderDesc": "Tested with NVDA, JAWS, VoiceOver, and TalkBack. Features semantic landmarks, single h1 hierarchy, and aria-live announcements.",
+    "keyboardTitle": "Full Keyboard Navigation",
+    "keyboardDesc": "Every button, link, and control is fully accessible via Tab and Enter keys, with unmistakable high-visibility focus indicators.",
+    "contrastTitle": "High Contrast & Reduced Motion",
+    "contrastDesc": "Full compliance with system high-contrast modes (forced-colors) and zero-motion preferences for vestibular sensitivity."
+  },
+  "changelog": {
+    "title": "Changelog & Releases",
+    "subtitle": "Directly mirrored from our official releases repository.",
+    "loading": "Checking for latest release...",
+    "noReleases": "No public release package has been published to the releases repository yet.",
+    "releasedOn": "Released on {date}",
+    "viewRelease": "View Release on GitHub"
+  },
+  "footer": {
+    "disclaimer": "Notice: Trinetra is an open-source assistive tool, not a certified medical device. It does not replace a white cane, guide dog, or personal orientation and mobility training.",
+    "license": "Licensed under the Apache-2.0 License.",
+    "github": "Source Code on GitHub",
+    "firmware": "Firmware Source",
+    "releases": "Releases Repository",
+    "reportIssue": "Report an Issue",
+    "copyright": "© 2026 Trinetra Project. Open-source assistive platform for Nepal."
+  },
+  "live": {
+    "languageChanged": "Language changed to English",
+    "themeChanged": "Theme changed to {theme}",
+    "checksumCopied": "Checksum copied to clipboard"
+  }
+}

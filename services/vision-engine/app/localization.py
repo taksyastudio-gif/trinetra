@@ -6,7 +6,7 @@ Keeps object detection and computer vision language-independent.
 
 from enum import Enum
 import logging
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger("trinetra.localization")
 
@@ -90,6 +90,20 @@ COCO_NEPALI_LABELS: Dict[str, str] = {
     "laptop": "ल्यापटप",
     "book": "किताब",
     "clock": "घडी",
+    "nrs_5": "५ रुपैयाँको नोट",
+    "nrs_10": "१० रुपैयाँको नोट",
+    "nrs_20": "२० रुपैयाँको नोट",
+    "nrs_50": "५० रुपैयाँको नोट",
+    "nrs_100": "१०० रुपैयाँको नोट",
+    "nrs_500": "५०० रुपैयाँको नोट",
+    "nrs_1000": "१००० रुपैयाँको नोट",
+    "tempo": "टेम्पो",
+    "microbus": "माइक्रोबस",
+    "pothole": "सडकको खाल्डो",
+    "open_manhole": "खुला ढल",
+    "hanging_wire": "बिजुलीको तार",
+    "pole": "बिजुलीको खम्बा",
+    "stray_dog": "कुकुर",
 }
 
 
@@ -139,6 +153,30 @@ def format_announcement(
         return f"{clean_class.capitalize()}, {english_sector}."
 
 
+def format_multi_announcement(
+    items: List[Tuple[str, str]],
+    language: str = DEFAULT_LANGUAGE
+) -> str:
+    """Formats an aggregated natural announcement for up to two stationary obstacles in the scene."""
+    if not items:
+        return ""
+    if len(items) == 1:
+        return format_announcement(items[0][0], items[0][1], language=language)
+    lang = language.strip().lower()
+    if lang == SupportedLanguage.NEPALI.value:
+        s1 = SECTORS_NE.get(normalize_sector(items[0][1]), "अगाडि")
+        l1 = COCO_NEPALI_LABELS.get(items[0][0].strip().lower(), items[0][0])
+        s2 = SECTORS_NE.get(normalize_sector(items[1][1]), "दायाँतिर")
+        l2 = COCO_NEPALI_LABELS.get(items[1][0].strip().lower(), items[1][0])
+        return f"{s1} {l1} र {s2} {l2} छ।"
+    else:
+        s1 = SECTORS_EN.get(normalize_sector(items[0][1]), "ahead")
+        l1 = items[0][0].capitalize()
+        s2 = SECTORS_EN.get(normalize_sector(items[1][1]), "right")
+        l2 = items[1][0].capitalize()
+        return f"{l1}, {s1} and {l2}, {s2}."
+
+
 def get_announcement_key(
     class_name: str,
     sector: str,
@@ -171,9 +209,13 @@ def format_approaching_announcement(class_name: str, sector: str, language: str 
     if lang == SupportedLanguage.NEPALI.value:
         nepali_sector = SECTORS_NE.get(norm_sector, "अगाडि")
         nepali_label = COCO_NEPALI_LABELS.get(clean_class, clean_class)
+        if clean_class in ("bus", "microbus", "tempo"):
+            return f"{nepali_sector} {nepali_label} आइपुग्यो, नम्बर वा रुट पढौं?"
         return f"{nepali_sector} {nepali_label} नजिकिँदै छ।"
     else:
         english_sector = SECTORS_EN.get(norm_sector, "ahead")
+        if clean_class in ("bus", "microbus", "tempo"):
+            return f"{clean_class.capitalize()} arriving, {english_sector}. Read route?"
         return f"{clean_class.capitalize()} approaching, {english_sector}."
 
 

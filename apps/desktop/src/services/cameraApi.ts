@@ -18,9 +18,18 @@ import {
   DetectionStatusResponse,
   SupervisorServiceStatus,
   AssistiveResult,
+  SpeechTranscribeResponse,
+  OfflineSttStatusResponse,
 } from "../types/api";
 
-const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL =
+  typeof window !== "undefined" &&
+  window.location.hostname &&
+  window.location.hostname !== "localhost" &&
+  window.location.hostname !== "127.0.0.1" &&
+  !window.location.hostname.includes("tauri")
+    ? `http://${window.location.hostname}:8000`
+    : "http://127.0.0.1:8000";
 
 // Private in-memory token cache (never stored in localStorage, sessionStorage, or logs)
 let inMemorySessionToken: string | null = null;
@@ -158,6 +167,23 @@ export const cameraApi = {
   async stop(): Promise<CameraActionResponse> {
     return requestJson<CameraActionResponse>("/api/camera/stop", {
       method: "POST",
+    });
+  },
+
+  /**
+   * Retrieves current mirror mode state.
+   */
+  async getMirrorMode(): Promise<{ mirror_mode: boolean }> {
+    return requestJson<{ mirror_mode: boolean }>("/api/camera/mirror");
+  },
+
+  /**
+   * Sets horizontal mirror mode (e.g. for selfie testing vs forward-facing wearable mode).
+   */
+  async setMirrorMode(mirrorMode: boolean): Promise<{ status: string; mirror_mode: boolean }> {
+    return requestJson<{ status: string; mirror_mode: boolean }>("/api/camera/mirror", {
+      method: "POST",
+      body: JSON.stringify({ mirror_mode: mirrorMode }),
     });
   },
 
@@ -317,6 +343,89 @@ export const cameraApi = {
 
   async recognizeFace(): Promise<AssistiveResult> {
     return requestJson<AssistiveResult>("/api/faces/recognize", { method: "POST", body: JSON.stringify({ speak: true }) });
+  },
+
+  async saveLocationBookmark(label?: string): Promise<{ status: string; bookmark: any; message: string }> {
+    return requestJson<{ status: string; bookmark: any; message: string }>("/api/location/bookmark", {
+      method: "POST",
+      body: JSON.stringify({ label: label || null }),
+    });
+  },
+
+  async getLocationBookmarks(): Promise<any[]> {
+    return requestJson<any[]>("/api/location/bookmarks");
+  },
+
+  /**
+   * Submits audio base64 or text transcript to local offline speech recognition engine.
+   */
+  async transcribeSpeech(audioBase64?: string, transcript?: string): Promise<SpeechTranscribeResponse> {
+    return requestJson<SpeechTranscribeResponse>("/api/speech/transcribe", {
+      method: "POST",
+      body: JSON.stringify({
+        audio_base64: audioBase64 || null,
+        transcript: transcript || null,
+      }),
+    });
+  },
+
+  /**
+   * Retrieves offline speech-to-text status.
+   */
+  async getOfflineSttStatus(): Promise<OfflineSttStatusResponse> {
+    return requestJson<OfflineSttStatusResponse>("/api/speech/stt/status");
+  },
+
+  /**
+   * Captures an immediate incident snapshot with cryptographic tamper-evident SHA-256 digest.
+   */
+  async captureIncident(notes?: string): Promise<any> {
+    return requestJson<any>("/api/incident/capture", {
+      method: "POST",
+      body: JSON.stringify({ notes: notes || "Manual incident trigger" }),
+    });
+  },
+
+  /**
+   * Initiates Caretaker Safety Protocol: 10-second audible countdown before recording.
+   */
+  async startIncidentPrealert(notes?: string): Promise<{ status: string; prealert_id: string; countdown_seconds: number }> {
+    return requestJson<{ status: string; prealert_id: string; countdown_seconds: number }>("/api/incident/prealert", {
+      method: "POST",
+      body: JSON.stringify({ notes: notes || "Emergency Assistance Triggered" }),
+    });
+  },
+
+  /**
+   * Cancels active 10-second countdown (false alarm dismissal).
+   */
+  async cancelIncidentPrealert(): Promise<{ status: string; message: string }> {
+    return requestJson<{ status: string; message: string }>("/api/incident/cancel", {
+      method: "POST",
+    });
+  },
+
+  /**
+   * Retrieves status of active incident pre-alert countdown.
+   */
+  async getIncidentPrealertStatus(): Promise<{ active: boolean; remaining_seconds: number; prealert_id?: string; notes?: string }> {
+    return requestJson<{ active: boolean; remaining_seconds: number; prealert_id?: string; notes?: string }>("/api/incident/prealert/status");
+  },
+
+  /**
+   * Lists all tamper-evident local incident records.
+   */
+  async listIncidents(): Promise<any[]> {
+    return requestJson<any[]>("/api/incident/list");
+  },
+
+  /**
+   * Cryptographically verifies local image and metadata integrity.
+   */
+  async verifyIncident(incidentId: string): Promise<{ incident_id: string; verified: boolean; error?: string }> {
+    return requestJson<{ incident_id: string; verified: boolean; error?: string }>(`/api/incident/${incidentId}/verify`, {
+      method: "POST",
+    });
   },
 
   /**

@@ -60,6 +60,7 @@ pub fn run() {
     let sup_clone = Arc::clone(&supervisor);
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(supervisor)
         .setup(|app| {
             let base_dir = resolve_base_dir(app.handle());

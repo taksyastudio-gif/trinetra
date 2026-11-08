@@ -1,0 +1,28 @@
+{
+  "name": "Trinetra (त्रिनेत्र) — Assistive AI Platform",
+  "short_name": "Trinetra",
+  "description": "Offline Multi-Modal Assistive AI Software Platform for Nepal",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f1117",
+  "theme_color": "#002147",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["accessibility", "utilities", "education"],
+  "lang": "ne"
+}

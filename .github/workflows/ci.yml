@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  python-tests:
+    name: Python Test Suite (Ubuntu)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1 tesseract-ocr tesseract-ocr-nep libespeak-ng-dev
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e packages/trinetra-core
+          pip install -r services/vision-engine/requirements.txt
+
+      - name: Run trinetra-core Pytest
+        run: |
+          pytest packages/trinetra-core/tests
+
+      - name: Run vision-engine Pytest
+        working-directory: services/vision-engine
+        run: |
+          pytest tests
+
+  python-tests-windows:
+    name: Python Test Suite (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e packages/trinetra-core
+          pip install -r services/vision-engine/requirements.txt
+
+      - name: Run trinetra-core Pytest
+        run: |
+          pytest packages/trinetra-core/tests
+
+      - name: Run vision-engine Pytest
+        working-directory: services/vision-engine
+        run: |
+          pytest tests
+
+  desktop-build:
+    name: Desktop Frontend Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      - name: Install Desktop Dependencies
+        working-directory: apps/desktop
+        run: npm ci
+
+      - name: Build Desktop Frontend
+        working-directory: apps/desktop
+        run: npm run build

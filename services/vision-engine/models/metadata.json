@@ -1,0 +1,32 @@
+{
+  "model_name": "trinetra_nano.onnx",
+  "architecture": "yolox_nano",
+  "input_size": 416,
+  "channels": 3,
+  "num_classes": 20,
+  "classes": [
+    "nrs_5",
+    "nrs_10",
+    "nrs_20",
+    "nrs_50",
+    "nrs_100",
+    "nrs_500",
+    "nrs_1000",
+    "person",
+    "motorcycle",
+    "bicycle",
+    "car",
+    "bus",
+    "truck",
+    "dog",
+    "cow",
+    "chair",
+    "stairs",
+    "pothole",
+    "open_manhole",
+    "traffic light"
+  ],
+  "sha256": "1cd17ffa99007339990d4af650d02b8bf6018b6cf0e38c5cade3ffc789400aaf",
+  "theme": "Made in Nepal, for Nepal",
+  "version": "1.0.0"
+}

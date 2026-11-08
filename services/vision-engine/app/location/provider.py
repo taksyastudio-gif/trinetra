@@ -13,12 +13,15 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from enum import Enum
+import json
 import logging
 import os
+from pathlib import Path
 import subprocess
 import threading
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
+import uuid
 
 logger = logging.getLogger("trinetra.location")
 
@@ -52,6 +55,20 @@ class LocationReport:
         d = asdict(self)
         d["status"] = self.status.value
         return d
+
+
+@dataclass
+class LocationBookmark:
+    id: str
+    label: str
+    latitude: Optional[float]
+    longitude: Optional[float]
+    accuracy_meters: Optional[float]
+    saved_at_iso: str
+    osm_url: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
 
 
 class LocationProvider(ABC):
@@ -289,11 +306,12 @@ class WindowsLocationProvider(LocationProvider):
 
 
 class LocationManager:
-    """Singleton holder for authoritative location provider."""
+    """Singleton holder for authoritative location provider and offline bookmarks."""
 
-    def __init__(self, provider: Optional[LocationProvider] = None):
+    def __init__(self, provider: Optional[LocationProvider] = None, bookmarks_path: Optional[Path] = None):
         self.provider: LocationProvider = provider or DisabledLocationProvider()
         self._lock = threading.RLock()
+        self.bookmarks_path = bookmarks_path or (Path(__file__).resolve().parent.parent.parent / "datasets" / "location" / "bookmarks.json")
 
     def get_report(self) -> LocationReport:
         with self._lock:
@@ -310,3 +328,73 @@ class LocationManager:
     def disable(self) -> None:
         with self._lock:
             self.provider.disable()
+
+    def get_bookmarks(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            if not self.bookmarks_path.is_file():
+                return []
+            try:
+                with open(self.bookmarks_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return data if isinstance(data, list) else []
+            except Exception as exc:
+                logger.warning(f"Error loading bookmarks from {self.bookmarks_path}: {exc}")
+                return []
+
+    def save_bookmark(self, label: Optional[str] = None) -> Dict[str, Any]:
+        """Saves current location coordinates or landmark to local offline bookmarks."""
+        with self._lock:
+            rep = self.get_report()
+            now_iso = datetime.now(timezone.utc).isoformat()
+            bookmarks = self.get_bookmarks()
+
+            count = len(bookmarks) + 1
+            final_label = label.strip() if label and label.strip() else f"स्थान {count}"
+
+            lat = rep.latitude
+            lon = rep.longitude
+            acc = rep.accuracy_meters
+
+            # Default to Kathmandu center if completely unconfigured/indoors without GPS fix
+            if lat is None or lon is None:
+                lat = 27.700769
+                lon = 85.300140
+                acc = 50.0
+
+            osm_url = f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=18/{lat}/{lon}"
+
+            bookmark_id = f"bm_{uuid.uuid4().hex[:8]}"
+            new_bm = LocationBookmark(
+                id=bookmark_id,
+                label=final_label,
+                latitude=lat,
+                longitude=lon,
+                accuracy_meters=acc,
+                saved_at_iso=now_iso,
+                osm_url=osm_url
+            ).to_dict()
+
+            bookmarks.append(new_bm)
+
+            try:
+                self.bookmarks_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(self.bookmarks_path, "w", encoding="utf-8") as f:
+                    json.dump(bookmarks, f, indent=2, ensure_ascii=False)
+            except Exception as exc:
+                logger.error(f"Failed to write bookmark to disk: {exc}")
+
+            return new_bm
+
+    def delete_bookmark(self, bookmark_id: str) -> bool:
+        with self._lock:
+            bookmarks = self.get_bookmarks()
+            filtered = [b for b in bookmarks if b.get("id") != bookmark_id]
+            if len(filtered) == len(bookmarks):
+                return False
+            try:
+                with open(self.bookmarks_path, "w", encoding="utf-8") as f:
+                    json.dump(filtered, f, indent=2, ensure_ascii=False)
+                return True
+            except Exception as exc:
+                logger.error(f"Failed to update bookmarks after delete: {exc}")
+                return False

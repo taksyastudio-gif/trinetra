@@ -16,6 +16,9 @@ from app.camera.adapter import FramePacket
 from app.detection.decision import SceneDecisionEngine
 from app.detection.ego_motion import EgoMotionEstimate, SparseOpticalFlowEgoMotionEstimator
 from app.detection.fusion import DetectionFusion
+from app.detection.ground_hazard import GroundHazardDetector
+from app.detection.nepal_hazards import NepalOverheadWireDetector
+from app.detection.sign_interpreter import SignGestureInterpreter
 from app.detection.scene import SceneAnalyzer
 from app.detection.tracking import TemporalTracker
 from app.detection.types import BoundingBox, Detection, DetectionResult, classify_sector
@@ -182,6 +185,12 @@ class PerceptionPipeline:
         self.tracker = TemporalTracker()
         self.ego_motion_estimator = SparseOpticalFlowEgoMotionEstimator()
         self.scene_analyzer = SceneAnalyzer()
+        self.ground_hazard_detector = GroundHazardDetector()
+        self.wire_detector = NepalOverheadWireDetector()
+        self.sign_interpreter = SignGestureInterpreter()
+        self._last_sign_time: float = 0.0
+        self.currency_service = None
+        self._last_auto_currency_time: float = 0.0
         self.decision_engine = SceneDecisionEngine(
             speech_manager=self.speech_manager,
             language=self._language
@@ -331,6 +340,144 @@ class PerceptionPipeline:
                 fused_dets = self.fusion.fuse(result.detections, frame_bytes=packet.jpeg_bytes)
                 result = dataclasses.replace(result, detections=fused_dets)
 
+            frame_bgr = None
+            if packet.jpeg_bytes:
+                try:
+                    import cv2
+                    import numpy as np
+                    nparr = np.frombuffer(packet.jpeg_bytes, np.uint8)
+                    frame_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                except Exception:
+                    frame_bgr = None
+
+            # Ground hazard & surface discontinuity check (potholes, open drains, curb drops)
+            hazard_data = None
+            if packet.jpeg_bytes and hasattr(self, "ground_hazard_detector") and self.ground_hazard_detector:
+                try:
+                    import cv2
+                    import numpy as np
+                    nparr = np.frombuffer(packet.jpeg_bytes, np.uint8)
+                    frame_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                    if frame_bgr is not None:
+                        hazard = self.ground_hazard_detector.analyze(frame_bgr)
+                        if hazard.detected:
+                            hazard_data = {
+                                "detected": True,
+                                "hazard_type": hazard.hazard_type,
+                                "severity": hazard.severity,
+                                "confidence": round(float(hazard.confidence), 2),
+                                "message": hazard.message_ne if self.language.startswith("ne") else hazard.message_en,
+                                "bounding_box": list(hazard.bounding_box) if hazard.bounding_box else None
+                            }
+                            if self.speech_manager:
+                                self.speech_manager.announce(
+                                    text=hazard.message_ne if self.language.startswith("ne") else hazard.message_en,
+                                    priority=SpeechPriority.CRITICAL_HAZARD,
+                                    message_key=f"ground_hazard:{hazard.hazard_type}",
+                                    interrupt=True,
+                                    cooldown=3.0,
+                                    language="ne" if self.language.startswith("ne") else "en"
+                                )
+                except Exception as gh_err:
+                    logger.debug(f"Ground hazard detection error: {gh_err}")
+
+            if hazard_data:
+                result = dataclasses.replace(result, ground_hazard=hazard_data)
+
+            # Overhead dangling wire detection (upper 35% clearance zone)
+            wire_data = None
+            if packet.jpeg_bytes and hasattr(self, "wire_detector") and self.wire_detector:
+                try:
+                    if frame_bgr is not None:
+                        wire_alert = self.wire_detector.analyze(frame_bgr)
+                        if wire_alert.detected:
+                            wire_data = {
+                                "detected": True,
+                                "hazard_class": wire_alert.hazard_class,
+                                "severity": wire_alert.severity,
+                                "confidence": round(float(wire_alert.confidence), 2),
+                                "message": wire_alert.message_ne if self.language.startswith("ne") else wire_alert.message_en,
+                                "bounding_box": list(wire_alert.bounding_box) if wire_alert.bounding_box else None
+                            }
+                            if self.speech_manager:
+                                self.speech_manager.announce(
+                                    text=wire_alert.message_ne if self.language.startswith("ne") else wire_alert.message_en,
+                                    priority=SpeechPriority.CRITICAL_HAZARD,
+                                    message_key=f"wire_hazard:{wire_alert.hazard_class}",
+                                    interrupt=True,
+                                    cooldown=3.0,
+                                    language="ne" if self.language.startswith("ne") else "en"
+                                )
+                except Exception as w_err:
+                    logger.debug(f"Overhead wire detection error: {w_err}")
+
+            if wire_data:
+                result = dataclasses.replace(result, overhead_wire=wire_data)
+
+            # Semi-autonomous in-hand currency note recognition
+            auto_currency_data = None
+            now_sec = time.time()
+            if (
+                packet.jpeg_bytes
+                and getattr(self, "currency_service", None) is not None
+                and (now_sec - getattr(self, "_last_auto_currency_time", 0.0)) >= 1.0
+            ):
+                try:
+                    curr_res = self.currency_service.identify(packet.jpeg_bytes)
+                    if curr_res.get("status") == "identified":
+                        self._last_auto_currency_time = now_sec
+                        auto_currency_data = curr_res
+                        spoken = curr_res.get("spoken_text") or curr_res.get("message")
+                        if self.speech_manager:
+                            self.speech_manager.announce(
+                                text=spoken,
+                                priority=SpeechPriority.SPATIAL_NAVIGATION,
+                                message_key=f"auto_currency:{curr_res.get('denomination')}",
+                                interrupt=True,
+                                cooldown=4.0,
+                                language="ne" if self.language.startswith("ne") else "en"
+                            )
+                except Exception as c_err:
+                    logger.debug(f"Auto-currency check error: {c_err}")
+
+            if auto_currency_data:
+                result = dataclasses.replace(result, auto_currency=auto_currency_data)
+
+            # Two-way sign language & hand gesture translation
+            sign_data = None
+            if packet.jpeg_bytes and getattr(self, "sign_interpreter", None) is not None and (now_sec - getattr(self, "_last_sign_time", 0.0)) >= 1.2:
+                try:
+                    import cv2
+                    import numpy as np
+                    nparr = np.frombuffer(packet.jpeg_bytes, np.uint8)
+                    frame_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                    if frame_bgr is not None:
+                        sign = self.sign_interpreter.analyze(frame_bgr)
+                        if sign.detected:
+                            self._last_sign_time = now_sec
+                            sign_data = {
+                                "detected": True,
+                                "gesture_type": sign.gesture_type,
+                                "confidence": round(float(sign.confidence), 2),
+                                "message": sign.message_ne if self.language.startswith("ne") else sign.message_en,
+                                "symbol": sign.symbol,
+                                "bounding_box": list(sign.bounding_box) if sign.bounding_box else None
+                            }
+                            if self.speech_manager:
+                                self.speech_manager.announce(
+                                    text=sign.message_ne if self.language.startswith("ne") else sign.message_en,
+                                    priority=SpeechPriority.SPATIAL_NAVIGATION,
+                                    message_key=f"sign:{sign.gesture_type}",
+                                    interrupt=True,
+                                    cooldown=4.5,
+                                    language="ne" if self.language.startswith("ne") else "en"
+                                )
+                except Exception as s_err:
+                    logger.debug(f"Sign interpreter error: {s_err}")
+
+            if sign_data:
+                result = dataclasses.replace(result, sign_gesture=sign_data)
+
             e2e_ms = max(0.0, (time.time() - packet.captured_at) * 1000.0) if packet.captured_at > 0 else result.inference_time_ms
             result = dataclasses.replace(result, e2e_latency_ms=round(e2e_ms, 1))
 
@@ -472,82 +619,7 @@ class PerceptionPipeline:
                 continue
 
             try:
-                # Pre-flight sensor health evaluation
-                state_action = None
-                if hasattr(self, "health_controller") and self.health_controller and self.health_controller.is_enabled():
-                    try:
-                        _, state_action = self.health_controller.evaluate_frame(
-                            packet.jpeg_bytes,
-                            frame_id=packet.frame_id,
-                            timestamp=packet.captured_at
-                        )
-                    except Exception as h_err:
-                        logger.warning(f"SensorHealthController error: {h_err}")
-                        state_action = None
-
-                # Trace audio chime into speech manager for spoken health warnings
-                if state_action is not None and getattr(state_action, "audio_chime", None):
-                    self._handle_sensor_health_alert(state_action)
-
-                # Suppress DNN inference during verified outages
-                if state_action is not None and not state_action.should_run_dnn:
-                    if getattr(state_action, "tracks_purged", False) or getattr(state_action.state, "value", "") == "STALE_TERMINATED":
-                        if hasattr(self, "tracker") and self.tracker:
-                            if hasattr(self.tracker, "tracks"):
-                                self.tracker.tracks.clear()
-                            else:
-                                self.tracker.reset()
-                    elif getattr(state_action, "kalman_action", "") == "COAST_ONLY":
-                        if hasattr(self, "tracker") and self.tracker and self.tracker.tracks:
-                            for trk in self.tracker.tracks:
-                                if getattr(trk.state, "value", "") != "deleted":
-                                    trk.predict(packet.captured_at)
-                                    trk.mark_missed(max_age=15)
-
-                    suppressed_result = DetectionResult(
-                        frame_id=packet.frame_id,
-                        timestamp=packet.captured_at if packet.captured_at > 0 else time.time(),
-                        detections=[],
-                        inference_time_ms=0.0,
-                        model_name=getattr(self.engine, "model_name", "InferenceSuppressed")
-                    )
-                    with self._lock:
-                        self._latest_result = suppressed_result
-                        self._last_processed_frame_id = packet.frame_id
-                        self._last_processed_session_id = packet.session_id
-                        self._frames_processed_count += 1
-                    continue
-
-                result = self.engine.detect(packet.jpeg_bytes, packet.frame_id)
-                if hasattr(self, "fusion") and self.fusion is not None and packet.jpeg_bytes:
-                    fused_dets = self.fusion.fuse(result.detections, frame_bytes=packet.jpeg_bytes)
-                    result = dataclasses.replace(result, detections=fused_dets)
-
-                e2e_ms = max(0.0, (time.time() - packet.captured_at) * 1000.0) if packet.captured_at > 0 else result.inference_time_ms
-                result = dataclasses.replace(result, e2e_latency_ms=round(e2e_ms, 1))
-
-                with self._lock:
-                    self._latest_result = result
-                    self._last_processed_frame_id = packet.frame_id
-                    self._last_processed_session_id = packet.session_id
-                    self._frames_processed_count += 1
-
-                # Estimate camera ego-motion if frame bytes are present
-                ego_motion = None
-                if (
-                    hasattr(self, "ego_motion_estimator")
-                    and self.ego_motion_estimator is not None
-                    and packet.jpeg_bytes is not None
-                    and len(packet.jpeg_bytes) > 0
-                ):
-                    boxes = [d.box for d in result.detections] if result.detections else None
-                    ego_motion = self.ego_motion_estimator.estimate(
-                        packet.jpeg_bytes,
-                        packet.captured_at,
-                        detected_boxes=boxes
-                    )
-
-                self._announce_detections(result, ego_motion=ego_motion)
+                self.process_frame(packet)
             except Exception as exc:
                 logger.warning(f"Background perception worker error on frame {packet.frame_id}: {exc}")
 

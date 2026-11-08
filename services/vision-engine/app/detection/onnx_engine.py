@@ -124,6 +124,18 @@ class OnnxDetectionEngine(DetectionEngine):
         self.confidence_threshold = confidence_threshold
         self.iou_threshold = iou_threshold
         self.expected_sha256 = expected_sha256
+        if classes is None:
+            meta_path = os.path.join(os.path.dirname(model_path), "metadata.json")
+            if os.path.isfile(meta_path):
+                try:
+                    import json
+                    with open(meta_path, "r", encoding="utf-8") as f:
+                        meta = json.load(f)
+                    if meta.get("model_name") == os.path.basename(model_path) and "classes" in meta:
+                        classes = meta["classes"]
+                except Exception:
+                    pass
+
         self.classes = classes or COCO_CLASSES
         self._session = None
         self._input_name = None
@@ -192,25 +204,15 @@ class OnnxDetectionEngine(DetectionEngine):
 
             # Detect architecture from output tensor dimensions
             out_shape = out.shape
-            if len(out_shape) == 3 and out_shape[2] == (5 + len(self.classes)):
-                # YOLOX output: [batch, num_candidates, 85] (4 box + 1 obj + 80 class)
+            if len(out_shape) == 3 and (out_shape[2] == (5 + len(self.classes)) or out_shape[2] == 25 or out_shape[2] == 85):
+                # YOLOX output: [batch, num_candidates, 5 + num_classes] (4 box + 1 obj + classes)
                 self.architecture = "yolox"
                 self._precompute_yolox_grids()
-            elif len(out_shape) == 3 and out_shape[1] == (4 + len(self.classes)):
-                # YOLOv8 output: [batch, 84, num_candidates] (4 box + 80 class)
-                self.architecture = "yolov8"
-            elif len(out_shape) == 3 and out_shape[2] == 85:
-                self.architecture = "yolox"
-                self._precompute_yolox_grids()
-            elif len(out_shape) == 3 and out_shape[1] == 84:
+            elif len(out_shape) == 3 and (out_shape[1] == (4 + len(self.classes)) or out_shape[1] == 84):
+                # YOLOv8 output: [batch, 4 + classes, num_candidates]
                 self.architecture = "yolov8"
             else:
-                # Default to YOLOX if trailing dimension is 85
-                if len(out_shape) == 3 and out_shape[-1] == 85:
-                    self.architecture = "yolox"
-                    self._precompute_yolox_grids()
-                else:
-                    self.architecture = "generic"
+                self.architecture = "generic"
 
             self._model_info["is_ready"] = True
             self._model_info["architecture"] = self.architecture

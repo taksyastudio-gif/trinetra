@@ -19,6 +19,7 @@ import logging
 import os
 from pathlib import Path
 import threading
+import time
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.audio.speaker import SpeechManager, SpeechPriority
@@ -83,7 +84,133 @@ class IncidentRecorder:
         self.max_records = max(5, max_records)
         self.speech_manager = speech_manager
         self.default_language: str = DEFAULT_LANGUAGE
+        self._active_prealert: Optional[Dict[str, Any]] = None
         self._lock = threading.RLock()
+
+    def trigger_prealert(
+        self,
+        packet: FramePacket,
+        detection_result: Optional[DetectionResult] = None,
+        location_data: Optional[Dict[str, Any]] = None,
+        notes: str = "Emergency Signal Triggered",
+        countdown_seconds: int = 10,
+        language: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Initiates the Caretaker Safety Protocol with a 10-second audible countdown.
+        Allows the user to cancel if it was a false alarm.
+        """
+        with self._lock:
+            if self._active_prealert and self._active_prealert.get("timer"):
+                try:
+                    self._active_prealert["timer"].cancel()
+                except Exception:
+                    pass
+
+            now_epoch = time.time()
+            prealert_id = f"pre_{int(now_epoch)}_{packet.frame_id}"
+            active_lang = normalize_language(language) if language and is_supported_language(language) else self.default_language
+
+            def _on_timeout():
+                with self._lock:
+                    if self._active_prealert and self._active_prealert.get("prealert_id") == prealert_id and not self._active_prealert.get("cancelled"):
+                        logger.info(f"Pre-alert countdown expired for {prealert_id}. Confirming incident record.")
+                        self.capture(
+                            packet=packet,
+                            detection_result=detection_result,
+                            location_data=location_data,
+                            notes=f"{notes} [CONFIRMED_AFTER_COUNTDOWN]",
+                            language=active_lang
+                        )
+                        if self.speech_manager:
+                            self.speech_manager.announce(
+                                text="आपतकालीन घटना प्रमाणित भयो र सुरक्षित गरियो।" if active_lang == "ne" else "Emergency incident confirmed and saved.",
+                                priority=SpeechPriority.CRITICAL_HAZARD,
+                                interrupt=True,
+                                cooldown=0.0,
+                                language=active_lang
+                            )
+                        self._active_prealert = None
+
+            timer = threading.Timer(float(countdown_seconds), _on_timeout)
+            timer.daemon = True
+
+            self._active_prealert = {
+                "prealert_id": prealert_id,
+                "packet": packet,
+                "start_epoch": now_epoch,
+                "duration": countdown_seconds,
+                "timer": timer,
+                "cancelled": False,
+                "notes": notes,
+                "language": active_lang
+            }
+            timer.start()
+
+        # Audible prompt
+        if self.speech_manager:
+            prompt = (
+                "चेतावनी: आपतकालीन सूचना १० सेकेन्डमा सुरक्षित हुनेछ। रद्द गर्न स्क्रिन छुनुहोस् वा 'म ठीक छु' भन्नुहोस्।"
+                if active_lang == "ne"
+                else "Warning: Emergency alert will activate in 10 seconds. Touch screen to cancel."
+            )
+            self.speech_manager.announce(
+                text=prompt,
+                priority=SpeechPriority.CRITICAL_HAZARD,
+                interrupt=True,
+                cooldown=0.0,
+                language=active_lang
+            )
+
+        return {
+            "status": "prealert_started",
+            "prealert_id": prealert_id,
+            "countdown_seconds": countdown_seconds,
+            "disclaimer": "Local incident verification protocol; does not contact remote emergency services."
+        }
+
+    def cancel_prealert(self) -> Dict[str, Any]:
+        """Cancels an active 10-second countdown."""
+        with self._lock:
+            if not self._active_prealert or self._active_prealert.get("cancelled"):
+                return {"status": "none_active", "message": "No active countdown to cancel."}
+
+            self._active_prealert["cancelled"] = True
+            timer = self._active_prealert.get("timer")
+            if timer:
+                try:
+                    timer.cancel()
+                except Exception:
+                    pass
+
+            lang = self._active_prealert.get("language", self.default_language)
+            self._active_prealert = None
+
+        if self.speech_manager:
+            self.speech_manager.announce(
+                text="आपतकालीन सूचना रद्द गरियो।" if lang == "ne" else "Emergency alert cancelled.",
+                priority=SpeechPriority.INFORMATIONAL,
+                interrupt=True,
+                cooldown=0.0,
+                language=lang
+            )
+
+        return {"status": "cancelled", "message": "Emergency pre-alert cancelled successfully."}
+
+    def get_prealert_status(self) -> Dict[str, Any]:
+        """Returns the current state of any active countdown."""
+        with self._lock:
+            if not self._active_prealert or self._active_prealert.get("cancelled"):
+                return {"active": False, "remaining_seconds": 0}
+
+            elapsed = time.time() - self._active_prealert["start_epoch"]
+            remaining = max(0.0, self._active_prealert["duration"] - elapsed)
+            return {
+                "active": remaining > 0,
+                "prealert_id": self._active_prealert["prealert_id"],
+                "remaining_seconds": round(remaining, 1),
+                "notes": self._active_prealert["notes"]
+            }
 
     def set_default_language(self, lang: str) -> None:
         with self._lock:
@@ -207,6 +334,7 @@ class IncidentRecorder:
                         "integrity_digest": data.get("integrity_digest"),
                         "detections_count": len(data.get("detections", [])),
                         "has_location": data.get("location") is not None,
+                        "notes": data.get("notes", ""),
                     })
                 except Exception as exc:
                     logger.warning(f"Failed to parse incident metadata {json_file}: {exc}")

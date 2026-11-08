@@ -1,0 +1,1615 @@
+{
+  "num_samples": 160,
+  "total_ref_chars": 2169,
+  "total_char_edits": 2203,
+  "cer": 1.0157,
+  "char_accuracy": 0.0,
+  "total_ref_words": 329,
+  "total_word_edits": 334,
+  "wer": 1.0152,
+  "word_accuracy": 0.0,
+  "exact_matches": 5,
+  "exact_match_ratio": 0.0312,
+  "samples": [
+    {
+      "index": 0,
+      "reference": "नमस्ते त्रिनेत्र",
+      "hypothesis": "नमस्ते त्रनित्र",
+      "char_edits": 2,
+      "ref_length": 16,
+      "sample_cer": 0.125,
+      "sample_wer": 0.5,
+      "exact_match": false
+    },
+    {
+      "index": 1,
+      "reference": "बाहिर जाने बाटो",
+      "hypothesis": "Tek जाने बाटो",
+      "char_edits": 5,
+      "ref_length": 15,
+      "sample_cer": 0.3333,
+      "sample_wer": 0.3333,
+      "exact_match": false
+    },
+    {
+      "index": 2,
+      "reference": "प्रवेश निषेध",
+      "hypothesis": "प्रवेश नषिध",
+      "char_edits": 2,
+      "ref_length": 12,
+      "sample_cer": 0.1667,
+      "sample_wer": 0.5,
+      "exact_match": false
+    },
+    {
+      "index": 3,
+      "reference": "अस्पताल",
+      "hypothesis": "अस्पताल",
+      "char_edits": 0,
+      "ref_length": 7,
+      "sample_cer": 0.0,
+      "sample_wer": 0.0,
+      "exact_match": true
+    },
+    {
+      "index": 4,
+      "reference": "फार्मेसी",
+      "hypothesis": "फार्मेसी",
+      "char_edits": 0,
+      "ref_length": 8,
+      "sample_cer": 0.0,
+      "sample_wer": 0.0,
+      "exact_match": true
+    },
+    {
+      "index": 5,
+      "reference": "औषधि पसल",
+      "hypothesis": "औषर्धापसल",
+      "char_edits": 4,
+      "ref_length": 8,
+      "sample_cer": 0.5,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 6,
+      "reference": "नेपाल बैंक लिमिटेड",
+      "hypothesis": "नेपाल बैँक लमिटिड",
+      "char_edits": 3,
+      "ref_length": 18,
+      "sample_cer": 0.1667,
+      "sample_wer": 0.6667,
+      "exact_match": false
+    },
+    {
+      "index": 7,
+      "reference": "सफा काठमाडौं",
+      "hypothesis": "सफा काठमाडौं",
+      "char_edits": 0,
+      "ref_length": 12,
+      "sample_cer": 0.0,
+      "sample_wer": 0.0,
+      "exact_match": true
+    },
+    {
+      "index": 8,
+      "reference": "बस नं ४५",
+      "hypothesis": "बस नं ४५",
+      "char_edits": 0,
+      "ref_length": 8,
+      "sample_cer": 0.0,
+      "sample_wer": 0.0,
+      "exact_match": true
+    },
+    {
+      "index": 9,
+      "reference": "खाजा घर",
+      "hypothesis": "खाजा घर",
+      "char_edits": 0,
+      "ref_length": 7,
+      "sample_cer": 0.0,
+      "sample_wer": 0.0,
+      "exact_match": true
+    },
+    {
+      "index": 10,
+      "reference": "कृपया बाटो छोड्नुहोस्",
+      "hypothesis": "UO000 0117",
+      "char_edits": 20,
+      "ref_length": 21,
+      "sample_cer": 0.9524,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 11,
+      "reference": "अस्पताल",
+      "hypothesis": "111",
+      "char_edits": 7,
+      "ref_length": 7,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 12,
+      "reference": "औषधि पसल",
+      "hypothesis": "OO00 OOO",
+      "char_edits": 7,
+      "ref_length": 8,
+      "sample_cer": 0.875,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 13,
+      "reference": "प्रहरी चौकी",
+      "hypothesis": "[111111[1111[1",
+      "char_edits": 14,
+      "ref_length": 11,
+      "sample_cer": 1.2727,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 14,
+      "reference": "बस बिसौनी",
+      "hypothesis": "OU",
+      "char_edits": 9,
+      "ref_length": 9,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 15,
+      "reference": "अगाडि खतरा छ",
+      "hypothesis": "OOOO",
+      "char_edits": 12,
+      "ref_length": 12,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 16,
+      "reference": "सडक पार गर्ने ठाउँ",
+      "hypothesis": "O00 O00 OO000 OU",
+      "char_edits": 15,
+      "ref_length": 18,
+      "sample_cer": 0.8333,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 17,
+      "reference": "काठमाडौँ महानगरपालिका",
+      "hypothesis": "[1111111111111111111117",
+      "char_edits": 23,
+      "ref_length": 21,
+      "sample_cer": 1.0952,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 18,
+      "reference": "प्रवेश निषेध",
+      "hypothesis": "000000 1111",
+      "char_edits": 11,
+      "ref_length": 12,
+      "sample_cer": 0.9167,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 19,
+      "reference": "खुल्ला छ",
+      "hypothesis": "[|] 1 | [111 [1",
+      "char_edits": 14,
+      "ref_length": 8,
+      "sample_cer": 1.75,
+      "sample_wer": 2.5,
+      "exact_match": false
+    },
+    {
+      "index": 20,
+      "reference": "बन्द छ",
+      "hypothesis": "[1111 []",
+      "char_edits": 7,
+      "ref_length": 6,
+      "sample_cer": 1.1667,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 21,
+      "reference": "नेपाल बैंक लिमिटेड",
+      "hypothesis": "सारा? 0000",
+      "char_edits": 16,
+      "ref_length": 18,
+      "sample_cer": 0.8889,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 22,
+      "reference": "दृष्टिविहीन मैत्री मार्ग",
+      "hypothesis": "जज जि OOOO OOOO",
+      "char_edits": 21,
+      "ref_length": 24,
+      "sample_cer": 0.875,
+      "sample_wer": 1.3333,
+      "exact_match": false
+    },
+    {
+      "index": 23,
+      "reference": "सावधान ढल खुला छ",
+      "hypothesis": "DOO000 00 0000 ए",
+      "char_edits": 13,
+      "ref_length": 16,
+      "sample_cer": 0.8125,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 24,
+      "reference": "सार्वजनिक शौचालय",
+      "hypothesis": "विल रि जि रिन",
+      "char_edits": 14,
+      "ref_length": 16,
+      "sample_cer": 0.875,
+      "sample_wer": 2.0,
+      "exact_match": false
+    },
+    {
+      "index": 25,
+      "reference": "आपतकालीन निकास",
+      "hypothesis": "[1111]",
+      "char_edits": 14,
+      "ref_length": 14,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 26,
+      "reference": "टिकट काउन्टर",
+      "hypothesis": "[1111[1111111",
+      "char_edits": 13,
+      "ref_length": 12,
+      "sample_cer": 1.0833,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 27,
+      "reference": "पहिलो तल्ला",
+      "hypothesis": "OOU00",
+      "char_edits": 11,
+      "ref_length": 11,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 28,
+      "reference": "लिफ्ट यता छ",
+      "hypothesis": "",
+      "char_edits": 11,
+      "ref_length": 11,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 29,
+      "reference": "हवाई अड्डा",
+      "hypothesis": "",
+      "char_edits": 10,
+      "ref_length": 10,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 30,
+      "reference": "रेलवे स्टेशन",
+      "hypothesis": "[71 0 0171",
+      "char_edits": 11,
+      "ref_length": 12,
+      "sample_cer": 0.9167,
+      "sample_wer": 1.5,
+      "exact_match": false
+    },
+    {
+      "index": 31,
+      "reference": "बिस्तारै जानुहोस्",
+      "hypothesis": "[11111111111111111",
+      "char_edits": 18,
+      "ref_length": 17,
+      "sample_cer": 1.0588,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 32,
+      "reference": "विद्यालय क्षेत्र",
+      "hypothesis": "1111",
+      "char_edits": 16,
+      "ref_length": 16,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 33,
+      "reference": "शान्त क्षेत्र",
+      "hypothesis": "",
+      "char_edits": 13,
+      "ref_length": 13,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 34,
+      "reference": "सूचना पार्टी",
+      "hypothesis": "OOOO",
+      "char_edits": 12,
+      "ref_length": 12,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 35,
+      "reference": "नेपाल सरकार",
+      "hypothesis": "[1[1[1[1[1[1[1[1[1[]1[]",
+      "char_edits": 23,
+      "ref_length": 11,
+      "sample_cer": 2.0909,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 36,
+      "reference": "गृह मन्त्रालय",
+      "hypothesis": "ooo",
+      "char_edits": 13,
+      "ref_length": 13,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 37,
+      "reference": "स्वास्थ्य चौकी",
+      "hypothesis": "[1111111111111111",
+      "char_edits": 17,
+      "ref_length": 14,
+      "sample_cer": 1.2143,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 38,
+      "reference": "रातो बत्ती",
+      "hypothesis": "oon0 OOOO",
+      "char_edits": 9,
+      "ref_length": 10,
+      "sample_cer": 0.9,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 39,
+      "reference": "हरियो बत्ती",
+      "hypothesis": "[11111111111",
+      "char_edits": 12,
+      "ref_length": 11,
+      "sample_cer": 1.0909,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 40,
+      "reference": "निति कारकहरु",
+      "hypothesis": "[11111[11111111",
+      "char_edits": 15,
+      "ref_length": 12,
+      "sample_cer": 1.25,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 41,
+      "reference": "साहित्यले फन्ट",
+      "hypothesis": "",
+      "char_edits": 14,
+      "ref_length": 14,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 42,
+      "reference": "रामनवमी ‘क’",
+      "hypothesis": "[11111111[17[]",
+      "char_edits": 14,
+      "ref_length": 11,
+      "sample_cer": 1.2727,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 43,
+      "reference": "शिरोमणि अड्डा",
+      "hypothesis": "रा? OOO",
+      "char_edits": 11,
+      "ref_length": 13,
+      "sample_cer": 0.8462,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 44,
+      "reference": "सरल राजीनामा",
+      "hypothesis": "eee, [111[111111111",
+      "char_edits": 18,
+      "ref_length": 12,
+      "sample_cer": 1.5,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 45,
+      "reference": "ड्रयु कहानिहरु",
+      "hypothesis": "OOOO",
+      "char_edits": 14,
+      "ref_length": 14,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 46,
+      "reference": "ढाल्न धर्मशाला,",
+      "hypothesis": "",
+      "char_edits": 15,
+      "ref_length": 15,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 47,
+      "reference": "गरिदिन्छ थे;",
+      "hypothesis": "",
+      "char_edits": 12,
+      "ref_length": 12,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 48,
+      "reference": "नवदुर्गाको चीजहरू",
+      "hypothesis": "UU",
+      "char_edits": 17,
+      "ref_length": 17,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 49,
+      "reference": "आउनेको कि,",
+      "hypothesis": "OW,",
+      "char_edits": 9,
+      "ref_length": 10,
+      "sample_cer": 0.9,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 50,
+      "reference": "उनिहरू ऐतिहासिक",
+      "hypothesis": "1111111711011111",
+      "char_edits": 16,
+      "ref_length": 15,
+      "sample_cer": 1.0667,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 51,
+      "reference": "\"=\". देशभरि",
+      "hypothesis": "[1[1[1[1[1[1[1[1[1[1[]",
+      "char_edits": 22,
+      "ref_length": 11,
+      "sample_cer": 2.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 52,
+      "reference": "चिताएको छोराले",
+      "hypothesis": "",
+      "char_edits": 14,
+      "ref_length": 14,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 53,
+      "reference": "गांधीको रोपेको",
+      "hypothesis": "oo00000 oo00000",
+      "char_edits": 14,
+      "ref_length": 14,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 54,
+      "reference": "मानिसले नेताको",
+      "hypothesis": "जा? Oooo",
+      "char_edits": 12,
+      "ref_length": 14,
+      "sample_cer": 0.8571,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 55,
+      "reference": "खत्तम सरकारबीच",
+      "hypothesis": "1111111111111",
+      "char_edits": 14,
+      "ref_length": 14,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 56,
+      "reference": "राम, मानेर",
+      "hypothesis": "O00, QO000",
+      "char_edits": 8,
+      "ref_length": 10,
+      "sample_cer": 0.8,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 57,
+      "reference": "महसुल शिविरबाट",
+      "hypothesis": "|]",
+      "char_edits": 14,
+      "ref_length": 14,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 58,
+      "reference": "विजयीको बाहेक",
+      "hypothesis": "OOO0000 oooog",
+      "char_edits": 12,
+      "ref_length": 13,
+      "sample_cer": 0.9231,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 59,
+      "reference": "वर्षपछि जानने",
+      "hypothesis": "QO000008 1177",
+      "char_edits": 13,
+      "ref_length": 13,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 60,
+      "reference": "त्यसभित्र सिजनमा",
+      "hypothesis": "",
+      "char_edits": 16,
+      "ref_length": 16,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 61,
+      "reference": "न्हूगु भिन्नता",
+      "hypothesis": "",
+      "char_edits": 14,
+      "ref_length": 14,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 62,
+      "reference": "नोट हृदयका",
+      "hypothesis": "[1111[1111111",
+      "char_edits": 13,
+      "ref_length": 10,
+      "sample_cer": 1.3,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 63,
+      "reference": "जिल्लाहरु बन्धु",
+      "hypothesis": "1111 1 1 10",
+      "char_edits": 14,
+      "ref_length": 15,
+      "sample_cer": 0.9333,
+      "sample_wer": 2.0,
+      "exact_match": false
+    },
+    {
+      "index": 64,
+      "reference": "लिंक हुँला",
+      "hypothesis": "UOU0 OO000",
+      "char_edits": 9,
+      "ref_length": 10,
+      "sample_cer": 0.9,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 65,
+      "reference": "प्रोटिन, बहुजातीय",
+      "hypothesis": "Oo000000, 00000000",
+      "char_edits": 16,
+      "ref_length": 17,
+      "sample_cer": 0.9412,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 66,
+      "reference": "बाटाहरू तोक्ने।",
+      "hypothesis": "",
+      "char_edits": 15,
+      "ref_length": 15,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 67,
+      "reference": "चन्द्रमास तथ्यमा",
+      "hypothesis": "",
+      "char_edits": 16,
+      "ref_length": 16,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 68,
+      "reference": "गोकर्ण भेटिन्छ",
+      "hypothesis": "",
+      "char_edits": 14,
+      "ref_length": 14,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 69,
+      "reference": "रनमा गाई",
+      "hypothesis": "[1[1[1[1[1[1[1[]",
+      "char_edits": 16,
+      "ref_length": 8,
+      "sample_cer": 2.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 70,
+      "reference": "बैठकका विषयहरुमा",
+      "hypothesis": "[111111-111111117",
+      "char_edits": 17,
+      "ref_length": 16,
+      "sample_cer": 1.0625,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 71,
+      "reference": "मिलीग्राम बहुमुखी",
+      "hypothesis": "[11111111111111111",
+      "char_edits": 18,
+      "ref_length": 17,
+      "sample_cer": 1.0588,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 72,
+      "reference": "बलिरहेको अगाध",
+      "hypothesis": "0",
+      "char_edits": 13,
+      "ref_length": 13,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 73,
+      "reference": "सिके पोखरी",
+      "hypothesis": "| |",
+      "char_edits": 9,
+      "ref_length": 10,
+      "sample_cer": 0.9,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 74,
+      "reference": "नोट कुष्ठरोग,",
+      "hypothesis": "[||] [11111111.",
+      "char_edits": 14,
+      "ref_length": 13,
+      "sample_cer": 1.0769,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 75,
+      "reference": "भूम्या लामिछाने",
+      "hypothesis": "",
+      "char_edits": 15,
+      "ref_length": 15,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 76,
+      "reference": "युवक अगाडी",
+      "hypothesis": "[| 11 1 ।",
+      "char_edits": 10,
+      "ref_length": 10,
+      "sample_cer": 1.0,
+      "sample_wer": 2.0,
+      "exact_match": false
+    },
+    {
+      "index": 77,
+      "reference": "भएयता समझकर",
+      "hypothesis": "",
+      "char_edits": 11,
+      "ref_length": 11,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 78,
+      "reference": "लागि, प्यार",
+      "hypothesis": "[1111 111111",
+      "char_edits": 11,
+      "ref_length": 11,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 79,
+      "reference": "देवघाट पूर्णरुपमा",
+      "hypothesis": "छ म [111",
+      "char_edits": 16,
+      "ref_length": 17,
+      "sample_cer": 0.9412,
+      "sample_wer": 1.5,
+      "exact_match": false
+    },
+    {
+      "index": 80,
+      "reference": "बरालले भीष्मपर्व",
+      "hypothesis": "",
+      "char_edits": 16,
+      "ref_length": 16,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 81,
+      "reference": "सौम्य हाम",
+      "hypothesis": "[[11111[111",
+      "char_edits": 11,
+      "ref_length": 9,
+      "sample_cer": 1.2222,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 82,
+      "reference": "दुरिमा थिएनन",
+      "hypothesis": "[111111111111",
+      "char_edits": 13,
+      "ref_length": 12,
+      "sample_cer": 1.0833,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 83,
+      "reference": "पुग्छन् अवश्यै",
+      "hypothesis": "[111111111111111",
+      "char_edits": 16,
+      "ref_length": 14,
+      "sample_cer": 1.1429,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 84,
+      "reference": "निर्देशांक निकाले",
+      "hypothesis": "[11111111111111111",
+      "char_edits": 18,
+      "ref_length": 17,
+      "sample_cer": 1.0588,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 85,
+      "reference": "उपमहाद्वीपको मोन्स",
+      "hypothesis": "[111111111111111111",
+      "char_edits": 19,
+      "ref_length": 18,
+      "sample_cer": 1.0556,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 86,
+      "reference": "जस्तोसुकै फुल्पिङकोट",
+      "hypothesis": "",
+      "char_edits": 20,
+      "ref_length": 20,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 87,
+      "reference": "गर्दथ्यो। सीडी",
+      "hypothesis": "[1111[1111[1[111[1[1111[1[1[1[1",
+      "char_edits": 31,
+      "ref_length": 14,
+      "sample_cer": 2.2143,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 88,
+      "reference": "कातालान प्रजातन्त्रलाई",
+      "hypothesis": "",
+      "char_edits": 22,
+      "ref_length": 22,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 89,
+      "reference": "वर्ष' इमेजिंग",
+      "hypothesis": "HOO",
+      "char_edits": 13,
+      "ref_length": 13,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 90,
+      "reference": "रिश्ता दंडको",
+      "hypothesis": "",
+      "char_edits": 12,
+      "ref_length": 12,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 91,
+      "reference": "जायेगा. संविधान",
+      "hypothesis": "[111111711111111",
+      "char_edits": 16,
+      "ref_length": 15,
+      "sample_cer": 1.0667,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 92,
+      "reference": "वस्तुपरक जन्य",
+      "hypothesis": "[11111117 [1177",
+      "char_edits": 14,
+      "ref_length": 13,
+      "sample_cer": 1.0769,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 93,
+      "reference": "तिम्रो हेर्यो",
+      "hypothesis": "",
+      "char_edits": 13,
+      "ref_length": 13,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 94,
+      "reference": "टार हुर्केको",
+      "hypothesis": "000 OOO00000",
+      "char_edits": 11,
+      "ref_length": 12,
+      "sample_cer": 0.9167,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 95,
+      "reference": "फोर बितरण",
+      "hypothesis": "OOO ooo0o00",
+      "char_edits": 10,
+      "ref_length": 9,
+      "sample_cer": 1.1111,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 96,
+      "reference": "क्षेत्रहरूका कथाबाट",
+      "hypothesis": "जाए ॥ 111 1",
+      "char_edits": 18,
+      "ref_length": 19,
+      "sample_cer": 0.9474,
+      "sample_wer": 2.0,
+      "exact_match": false
+    },
+    {
+      "index": 97,
+      "reference": "बाख्रा, सुडान",
+      "hypothesis": "000000, 00000",
+      "char_edits": 11,
+      "ref_length": 13,
+      "sample_cer": 0.8462,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 98,
+      "reference": "निद्रा पीडा",
+      "hypothesis": "WUUUUU OOOO",
+      "char_edits": 10,
+      "ref_length": 11,
+      "sample_cer": 0.9091,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 99,
+      "reference": "भूकम्पको डिल्लीबजार",
+      "hypothesis": "OOoo0oooo QOOO0o0oo0o0g",
+      "char_edits": 22,
+      "ref_length": 19,
+      "sample_cer": 1.1579,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 100,
+      "reference": "न्यूटन विदेशीको",
+      "hypothesis": "111]",
+      "char_edits": 15,
+      "ref_length": 15,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 101,
+      "reference": "जगतको अनुयायीहरू",
+      "hypothesis": "|",
+      "char_edits": 16,
+      "ref_length": 16,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 102,
+      "reference": "अनूदित भ्यागुताको",
+      "hypothesis": "[11111111111111111",
+      "char_edits": 18,
+      "ref_length": 17,
+      "sample_cer": 1.0588,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 103,
+      "reference": "तोर मददको",
+      "hypothesis": "OOO",
+      "char_edits": 9,
+      "ref_length": 9,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 104,
+      "reference": "वैज्ञानिकको पर्व,",
+      "hypothesis": "[1[1[1[1[1[11[1[1[11[1[1[11[11[1[11[1[]",
+      "char_edits": 39,
+      "ref_length": 17,
+      "sample_cer": 2.2941,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 105,
+      "reference": "प्रवद्र्धन सत्यताको",
+      "hypothesis": "11111111",
+      "char_edits": 19,
+      "ref_length": 19,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 106,
+      "reference": "नुवाकोट, हाई",
+      "hypothesis": "OO00000, 11 ]",
+      "char_edits": 11,
+      "ref_length": 12,
+      "sample_cer": 0.9167,
+      "sample_wer": 1.5,
+      "exact_match": false
+    },
+    {
+      "index": 107,
+      "reference": "गर्दिनँ रक्त",
+      "hypothesis": "",
+      "char_edits": 12,
+      "ref_length": 12,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 108,
+      "reference": "कार्रवाई अर्न्तर्गत",
+      "hypothesis": "OOOO",
+      "char_edits": 19,
+      "ref_length": 19,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 109,
+      "reference": "पाएनन् पाँचसय",
+      "hypothesis": "[1111] [11 1111",
+      "char_edits": 14,
+      "ref_length": 13,
+      "sample_cer": 1.0769,
+      "sample_wer": 1.5,
+      "exact_match": false
+    },
+    {
+      "index": 110,
+      "reference": "इनटु चली",
+      "hypothesis": "OW",
+      "char_edits": 8,
+      "ref_length": 8,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 111,
+      "reference": "लज्जाको आफूले",
+      "hypothesis": "",
+      "char_edits": 13,
+      "ref_length": 13,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 112,
+      "reference": "दह्रो बुनाई",
+      "hypothesis": "QOU008 00000",
+      "char_edits": 11,
+      "ref_length": 11,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 113,
+      "reference": "अड्डामा निर्माताको",
+      "hypothesis": "",
+      "char_edits": 18,
+      "ref_length": 18,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 114,
+      "reference": "रहर गरिएन।",
+      "hypothesis": "",
+      "char_edits": 10,
+      "ref_length": 10,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 115,
+      "reference": "रामनवमी, मायालु",
+      "hypothesis": "[| [1111]",
+      "char_edits": 14,
+      "ref_length": 15,
+      "sample_cer": 0.9333,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 116,
+      "reference": "अन्य दुइवटा",
+      "hypothesis": "",
+      "char_edits": 11,
+      "ref_length": 11,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 117,
+      "reference": "महानवमी राखेपछि",
+      "hypothesis": "[111111111111111",
+      "char_edits": 16,
+      "ref_length": 15,
+      "sample_cer": 1.0667,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 118,
+      "reference": "प्रसारण महिलाहरूमा",
+      "hypothesis": "सजाए?",
+      "char_edits": 16,
+      "ref_length": 18,
+      "sample_cer": 0.8889,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 119,
+      "reference": "उही कार्यकालमा",
+      "hypothesis": "01010101010101010101010 छ छि",
+      "char_edits": 28,
+      "ref_length": 14,
+      "sample_cer": 2.0,
+      "sample_wer": 1.5,
+      "exact_match": false
+    },
+    {
+      "index": 120,
+      "reference": "साँस स्वभावले",
+      "hypothesis": "",
+      "char_edits": 13,
+      "ref_length": 13,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 121,
+      "reference": "डोटेली डिस्क",
+      "hypothesis": "",
+      "char_edits": 12,
+      "ref_length": 12,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 122,
+      "reference": "राख्दछ। किनभने,",
+      "hypothesis": "जि",
+      "char_edits": 14,
+      "ref_length": 15,
+      "sample_cer": 0.9333,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 123,
+      "reference": "प्रकृतिले निहुँमा",
+      "hypothesis": "",
+      "char_edits": 17,
+      "ref_length": 17,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 124,
+      "reference": "गहुँ नम्बरको",
+      "hypothesis": "Oooo एएए1111",
+      "char_edits": 11,
+      "ref_length": 12,
+      "sample_cer": 0.9167,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 125,
+      "reference": "महाभारतका नागपञ्चमी",
+      "hypothesis": "जि 1 जाए]",
+      "char_edits": 17,
+      "ref_length": 19,
+      "sample_cer": 0.8947,
+      "sample_wer": 1.5,
+      "exact_match": false
+    },
+    {
+      "index": 126,
+      "reference": "प्रभावहरूको भौगोलिक,",
+      "hypothesis": "[111111111111111111,",
+      "char_edits": 19,
+      "ref_length": 20,
+      "sample_cer": 0.95,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 127,
+      "reference": "रुपया तेरो",
+      "hypothesis": "",
+      "char_edits": 10,
+      "ref_length": 10,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 128,
+      "reference": "लहरामा उच्च",
+      "hypothesis": "OOOOOOO0000",
+      "char_edits": 11,
+      "ref_length": 11,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 129,
+      "reference": "पोप मैथिल",
+      "hypothesis": "OU) DOO",
+      "char_edits": 8,
+      "ref_length": 9,
+      "sample_cer": 0.8889,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 130,
+      "reference": "कर्तव्य, बैजनी",
+      "hypothesis": "",
+      "char_edits": 14,
+      "ref_length": 14,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 131,
+      "reference": "कलेजहरू प्रकाशीय",
+      "hypothesis": "QOO0008 oo000000",
+      "char_edits": 15,
+      "ref_length": 16,
+      "sample_cer": 0.9375,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 132,
+      "reference": "पछिल्लोपटक पदार्थहरू",
+      "hypothesis": "[11111111111111111111",
+      "char_edits": 21,
+      "ref_length": 20,
+      "sample_cer": 1.05,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 133,
+      "reference": "पिउँ तापीय",
+      "hypothesis": "",
+      "char_edits": 10,
+      "ref_length": 10,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 134,
+      "reference": "पूर्वतिर साम्राज्य,",
+      "hypothesis": "[-11111111 111111111",
+      "char_edits": 20,
+      "ref_length": 19,
+      "sample_cer": 1.0526,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 135,
+      "reference": "प्रतिनिधिहरू मुसे",
+      "hypothesis": "ए ooo",
+      "char_edits": 16,
+      "ref_length": 17,
+      "sample_cer": 0.9412,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 136,
+      "reference": "प्रेस हुन्-",
+      "hypothesis": "O0000000000",
+      "char_edits": 11,
+      "ref_length": 11,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 137,
+      "reference": "उचाइमा खाई",
+      "hypothesis": "QOO0000 जाए",
+      "char_edits": 9,
+      "ref_length": 10,
+      "sample_cer": 0.9,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 138,
+      "reference": "लाल आदत",
+      "hypothesis": "oo00 O00",
+      "char_edits": 7,
+      "ref_length": 7,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 139,
+      "reference": "पुगिने लागयो",
+      "hypothesis": "[1111 1111 1",
+      "char_edits": 12,
+      "ref_length": 12,
+      "sample_cer": 1.0,
+      "sample_wer": 1.5,
+      "exact_match": false
+    },
+    {
+      "index": 140,
+      "reference": "कहिल्यै एड्स",
+      "hypothesis": "",
+      "char_edits": 12,
+      "ref_length": 12,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 141,
+      "reference": "तिरको द्धीप",
+      "hypothesis": "OOO00 00000",
+      "char_edits": 10,
+      "ref_length": 11,
+      "sample_cer": 0.9091,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 142,
+      "reference": "भेटिन्छ फरकफरक",
+      "hypothesis": "",
+      "char_edits": 14,
+      "ref_length": 14,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 143,
+      "reference": "षष्ठ दिपायल",
+      "hypothesis": "[111]",
+      "char_edits": 11,
+      "ref_length": 11,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 144,
+      "reference": "सेवाहरूमा भजन,",
+      "hypothesis": "विल 0000000010000",
+      "char_edits": 17,
+      "ref_length": 14,
+      "sample_cer": 1.2143,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 145,
+      "reference": "मडम खाँदै",
+      "hypothesis": "[111[11111",
+      "char_edits": 10,
+      "ref_length": 9,
+      "sample_cer": 1.1111,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 146,
+      "reference": "छिद्र पीडाको",
+      "hypothesis": "[1111111111]",
+      "char_edits": 12,
+      "ref_length": 12,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 147,
+      "reference": "प्यालेष्टिनी वातावरणले",
+      "hypothesis": "",
+      "char_edits": 22,
+      "ref_length": 22,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 148,
+      "reference": "अप्रिल-जून पुरस्कारमा",
+      "hypothesis": "[1[1[1[1[1[1[1[1[1[1[1[1[1[1[1[1[1[1[11[1[]",
+      "char_edits": 43,
+      "ref_length": 21,
+      "sample_cer": 2.0476,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 149,
+      "reference": "पडौजन मजदुरको",
+      "hypothesis": "[1[111[1[1[1[]1[1[1[1[1[11[1",
+      "char_edits": 28,
+      "ref_length": 13,
+      "sample_cer": 2.1538,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 150,
+      "reference": "चण्डेश्वरी थरहरू",
+      "hypothesis": "|]",
+      "char_edits": 16,
+      "ref_length": 16,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 151,
+      "reference": "जाएगा संभावनाको",
+      "hypothesis": "",
+      "char_edits": 15,
+      "ref_length": 15,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 152,
+      "reference": "ल्याउन ठूला-ठूला",
+      "hypothesis": "GUO",
+      "char_edits": 16,
+      "ref_length": 16,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 153,
+      "reference": "मंत्रालयको बलराम",
+      "hypothesis": "",
+      "char_edits": 16,
+      "ref_length": 16,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 154,
+      "reference": "भागले टेरेसा",
+      "hypothesis": "[11111[11111]",
+      "char_edits": 13,
+      "ref_length": 12,
+      "sample_cer": 1.0833,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 155,
+      "reference": "उहांले खर्च,",
+      "hypothesis": "[|]",
+      "char_edits": 12,
+      "ref_length": 12,
+      "sample_cer": 1.0,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 156,
+      "reference": "कैदीको इसलागि",
+      "hypothesis": "[1111111111111",
+      "char_edits": 14,
+      "ref_length": 13,
+      "sample_cer": 1.0769,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 157,
+      "reference": "देवलहरू योमरी",
+      "hypothesis": "QO00000 ए1111",
+      "char_edits": 12,
+      "ref_length": 13,
+      "sample_cer": 0.9231,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 158,
+      "reference": "सतीदेवीको बीपी",
+      "hypothesis": "000000000 111",
+      "char_edits": 13,
+      "ref_length": 14,
+      "sample_cer": 0.9286,
+      "sample_wer": 1.0,
+      "exact_match": false
+    },
+    {
+      "index": 159,
+      "reference": "राजनीतिज्ञ प्रस्तावित",
+      "hypothesis": "111 1111",
+      "char_edits": 20,
+      "ref_length": 21,
+      "sample_cer": 0.9524,
+      "sample_wer": 1.0,
+      "exact_match": false
+    }
+  ]
+}

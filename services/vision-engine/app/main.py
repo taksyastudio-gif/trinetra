@@ -315,6 +315,7 @@ class DetectionResultResponse(BaseModel):
     model_name: str
     e2e_latency_ms: float = 0.0
     ground_hazard: Optional[GroundHazardSchema] = None
+    overhead_wire: Optional[Dict[str, Any]] = None
     auto_currency: Optional[Dict[str, Any]] = None
     sign_gesture: Optional[Dict[str, Any]] = None
 
@@ -482,8 +483,8 @@ class CameraManager:
             return bool(getattr(self.adapter, "horizontal_flip", False))
 
 
-DEFAULT_TRINETRA_MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "trinetra_nano.onnx"
-DEFAULT_MODEL_PATH = DEFAULT_TRINETRA_MODEL_PATH if DEFAULT_TRINETRA_MODEL_PATH.is_file() else (Path(__file__).resolve().parent.parent / "models" / "yolox_nano.onnx")
+DEFAULT_YOLOX_PATH = Path(__file__).resolve().parent.parent / "models" / "yolox_nano.onnx"
+DEFAULT_MODEL_PATH = DEFAULT_YOLOX_PATH
 EXPECTED_MODEL_SHA256 = "c789161ed43c8269fcd4e67c67eeeb4e80c622da2eb296a20bc6007bd18a0b7d"
 DEFAULT_YUNET_PATH = Path(__file__).resolve().parent.parent / "models" / "face_detection_yunet_2023mar.onnx"
 EXPECTED_YUNET_SHA256 = "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4"
@@ -742,7 +743,7 @@ def create_app(
 
     app = FastAPI(
         title="Trinetra Vision Engine",
-        version="0.1.0",
+        version="0.2.0",
         description="Local-first vision and camera control API for the Trinetra assistive navigation system.",
         lifespan=lifespan,
         docs_url="/docs" if docs_enabled else None,
@@ -805,7 +806,7 @@ def create_app(
         return HealthResponse(
             status="ok",
             service="trinetra-vision-engine",
-            version="0.1.0"
+            version="0.2.0"
         )
 
     @app.get(
@@ -1395,7 +1396,10 @@ def create_app(
                 "time": time.time(),
             })
         if payload.speak:
-            spoken_text = result["text"] or result["message"] or "यस फ्रेममा कुनै स्पष्ट लेख फेला परेन।"
+            if result.get("status") == "uncertain":
+                spoken_text = result.get("spoken_text") or result.get("message") or "पाठ स्पष्ट छैन; कृपया क्यामेरा सिधा र नजिक राख्नुहोस्।"
+            else:
+                spoken_text = result.get("spoken_text") or result.get("text") or result.get("message") or "यस फ्रेममा कुनै स्पष्ट लेख फेला परेन।"
             speech_manager.announce(
                 spoken_text,
                 priority=SpeechPriority.CRITICAL_HAZARD,
@@ -2111,6 +2115,12 @@ def create_app(
             intensity=payload.intensity or 1.0,
         )
         return {"status": "ok" if ok else "failed", "location": loc.value, "pattern": pat.value}
+
+    # Mount compiled desktop frontend static files if present
+    desktop_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../apps/desktop/dist'))
+    if os.path.isdir(desktop_dist):
+        from fastapi.staticfiles import StaticFiles
+        app.mount('/', StaticFiles(directory=desktop_dist, html=True), name='desktop')
 
     return app
 

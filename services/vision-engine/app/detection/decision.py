@@ -19,6 +19,7 @@ from app.localization import (
     format_approaching_announcement,
     format_crowd_announcement,
     format_crossing_announcement,
+    format_multi_announcement,
     format_path_advisory,
     format_path_intersection_announcement,
     get_announcement_key,
@@ -267,8 +268,26 @@ class SceneDecisionEngine:
         # ---------------------------------------------------------------------
         # Priority 4: Significant Obstacle Identification (Event-based Persistent Tracking)
         # ---------------------------------------------------------------------
+        # Self-presence / Laptop Mode filter:
+        # If a single person occupies > 50% of the screen area or > 80% height right in front of the camera,
+        # it is the user themselves seated at the desk/laptop. Suppress looping "अगाडि मान्छे छ".
+        is_laptop_self_view = False
+        if not assessment.is_crowded and len(assessment.confirmed_tracks) <= 2:
+            for t in assessment.confirmed_tracks:
+                b_height = (t.box.y_max - t.box.y_min) if t.box else 0.0
+                b_area = t.box.area if t.box else 0.0
+                if t.class_name == "person" and (b_area >= 0.45 or b_height >= 0.75):
+                    is_laptop_self_view = True
+                    break
+
         if assessment.is_crowded:
             # When crowded, persons are summarized collectively; only non-person obstacles are candidates
+            candidate_tracks = [
+                t for t in assessment.confirmed_tracks
+                if t.class_name not in ("person", "uncertain", "unknown") and t.has_meaningfully_changed(language=lang)
+            ]
+        elif is_laptop_self_view:
+            # Self-user view active: ignore the person, only announce objects held up or placed in front (like currency)
             candidate_tracks = [
                 t for t in assessment.confirmed_tracks
                 if t.class_name not in ("person", "uncertain", "unknown") and t.has_meaningfully_changed(language=lang)
@@ -289,16 +308,24 @@ class SceneDecisionEngine:
                 reverse=True
             )
             top_track = candidate_tracks[0]
-            track_key = f"track:{top_track.track_id}:{top_track.class_name}:{top_track.sector}:{lang}"
+
+            # Semantic key independent of ephemeral tracker IDs prevents looping chatter
+            semantic_key = f"stationary:{top_track.class_name}:{top_track.sector}:{lang}"
+
+            # Suppress if this stationary obstacle was recently announced
+            last_spoken = self._cooldowns.get(semantic_key, 0.0)
+            if (now - last_spoken) < self.default_cooldown:
+                top_track.mark_announced(now, language=lang)
+                return None
 
             if (now - self._last_announcement_time) >= self.min_announcement_interval:
-                self._cooldowns[track_key] = now
+                self._cooldowns[semantic_key] = now
                 self._last_announcement_time = now
                 text = format_announcement(top_track.class_name, top_track.sector, language=lang)
                 self.speech_manager.announce(
                     text=text,
                     priority=SpeechPriority.SPATIAL_NAVIGATION,
-                    message_key=track_key,
+                    message_key=semantic_key,
                     interrupt=False,
                     cooldown=self.default_cooldown,
                     language=lang,
@@ -310,14 +337,17 @@ class SceneDecisionEngine:
         # ---------------------------------------------------------------------
         # Priority 5: Path Clearance Advisory (Center obstructed, flank clear)
         # ---------------------------------------------------------------------
-        if not assessment.path.center_clear:
+        # Suppress path clearance advice during stationary laptop self-view (user is working at a desk)
+        if not assessment.path.center_clear and not is_laptop_self_view:
             rec_dir = assessment.path.recommended_direction
             if rec_dir in ("left", "right") and assessment.path.confidence >= 0.70:
                 direction_changed = (rec_dir != self._last_path_direction)
                 path_key = f"path_advisory:{rec_dir}:{lang}"
+                # Increase path cooldown from 5s to 12s so it doesn't loop incessantly
+                effective_path_cooldown = max(self.path_cooldown, 12.0)
                 if (
                     direction_changed
-                    and (now - self._cooldowns.get(path_key, 0.0)) >= self.path_cooldown
+                    and (now - self._cooldowns.get(path_key, 0.0)) >= effective_path_cooldown
                     and (now - self._last_announcement_time) >= self.min_announcement_interval
                 ):
                     self._cooldowns[path_key] = now
@@ -329,7 +359,7 @@ class SceneDecisionEngine:
                         priority=SpeechPriority.SPATIAL_NAVIGATION,
                         message_key=path_key,
                         interrupt=False,
-                        cooldown=self.path_cooldown,
+                        cooldown=effective_path_cooldown,
                         language=lang,
                     )
                     self._events_dispatched_count += 1

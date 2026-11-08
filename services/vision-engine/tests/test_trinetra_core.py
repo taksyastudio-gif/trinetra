@@ -379,7 +379,7 @@ class MockModel(BaseModelInterface):
         self._loaded = False
         self._meta = ModelMetadata(
             name="yolox_nepal_test",
-            version="2.0.0",
+            version="0.2.0",
             architecture="YOLOX-Nano",
             framework="onnx",
             license="Apache-2.0",
