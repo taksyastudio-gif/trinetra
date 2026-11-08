@@ -517,59 +517,18 @@ def get_default_detection_fusion() -> Optional[Any]:
 
 def get_default_detection_engine() -> DetectionEngine:
     """
-    Returns the real OnnxDetectionEngine if model weights are present and verified.
-    If TRINETRA_USE_FAKE_DETECTION=1 is explicitly set, returns FakeDetectionEngine for testing.
-    If TRINETRA_MODEL_PATH is set, initializes that explicit model or raises ModelError/InferenceRuntimeError.
-    If the default model weights are missing or corrupt, returns UnavailableDetectionEngine
-    with actionable error details. Never silently falls back to FakeDetectionEngine.
+    Returns our 100% in-house NativeVisionEngine.
+    Zero ONNX runtimes. Zero third-party YOLO black-box weights.
+    Explainable, deterministic human presence, spatial obstacle navigation,
+    and ground hazard perception built entirely from first principles.
     """
     env_fake = os.environ.get("TRINETRA_USE_FAKE_DETECTION", "").lower() in ("1", "true", "yes")
     if env_fake:
         logger.info("TRINETRA_USE_FAKE_DETECTION active: using FakeDetectionEngine for testing.")
         return FakeDetectionEngine()
 
-    env_model = os.environ.get("TRINETRA_MODEL_PATH")
-    if env_model:
-        logger.info(f"Loading model from TRINETRA_MODEL_PATH: {env_model}")
-        return OnnxDetectionEngine(model_path=env_model)
-
-    default_model = DEFAULT_MODEL_PATH
-    is_trinetra_model = (default_model.name == "trinetra_nano.onnx")
-    meta_path = default_model.parent / "metadata.json"
-    custom_classes = None
-    if is_trinetra_model and meta_path.is_file():
-        try:
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            custom_classes = meta.get("classes")
-        except Exception:
-            pass
-
-    expected_sha = None if is_trinetra_model else EXPECTED_MODEL_SHA256
-    if default_model.is_file():
-        logger.info(f"Loading verified model from {default_model} (Trinetra: {is_trinetra_model})")
-        try:
-            return OnnxDetectionEngine(
-                model_path=str(default_model),
-                expected_sha256=expected_sha,
-                confidence_threshold=0.30 if is_trinetra_model else 0.35,
-                iou_threshold=0.45,
-                classes=custom_classes
-            )
-        except Exception as exc:
-            logger.error(f"Failed to load ONNX model from {default_model}: {exc}")
-            return UnavailableDetectionEngine(
-                error_message=f"Failed to load ONNX model ({default_model.name}): {exc}",
-                error_type=type(exc).__name__,
-                model_name="yolox_nano.onnx"
-            )
-
-    setup_hint = "Run 'python services/vision-engine/scripts/setup_models.py' to download verified weights."
-    logger.warning(f"No ONNX model found at default path '{default_model}'. {setup_hint}")
-    return UnavailableDetectionEngine(
-        error_message=f"Model file not found at '{default_model}'. {setup_hint}",
-        error_type="ModelFileNotFound",
-        model_name="yolox_nano.onnx"
-    )
+    logger.info("Starting Trinetra Native Vision Engine (100% In-House, Zero ONNX/YOLO).")
+    return NativeVisionEngine()
 
 
 # Singleton instances

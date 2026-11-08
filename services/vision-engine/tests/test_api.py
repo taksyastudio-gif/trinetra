@@ -1232,25 +1232,18 @@ def test_unavailable_detection_engine_lifecycle(fake_adapter):
         assert client.get("/api/detection/latest").json() is None
 
 
-def test_get_default_detection_engine_missing_file_returns_unavailable(monkeypatch, tmp_path):
+def test_get_default_detection_engine_returns_native_in_house(monkeypatch):
     """
-    Verifies that get_default_detection_engine() returns UnavailableDetectionEngine
-    instead of FakeDetectionEngine when model is missing or corrupt.
+    Verifies that get_default_detection_engine() returns the 100% in-house NativeVisionEngine.
+    Zero ONNX runtimes. Zero third-party YOLO models.
     """
-    from app.detection.engine import UnavailableDetectionEngine
+    from app.detection.native_engine import NativeVisionEngine
     import app.main as app_main
 
-    # Ensure fake env and custom model env are not set
     monkeypatch.delenv("TRINETRA_USE_FAKE_DETECTION", raising=False)
-    monkeypatch.delenv("TRINETRA_MODEL_PATH", raising=False)
-    # Point default model path to a missing file
-    missing_file = tmp_path / "does_not_exist.onnx"
-    monkeypatch.setattr(app_main, "DEFAULT_MODEL_PATH", missing_file)
-
     engine = app_main.get_default_detection_engine()
-    assert isinstance(engine, UnavailableDetectionEngine)
-    assert engine.is_ready() is False
-    assert "does_not_exist.onnx" in engine.error_message
+    assert isinstance(engine, NativeVisionEngine)
+    assert engine.is_ready() is True
 
 
 def test_get_default_detection_engine_fake_env_gated(monkeypatch):

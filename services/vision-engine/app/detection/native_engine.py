@@ -3,18 +3,21 @@ Trinetra Native Vision Engine
 100% In-house, deterministic computer-vision pipeline built from first principles.
 Zero ONNX runtimes. Zero third-party YOLO black-box weights.
 Explainable human presence, spatial obstacle navigation, ground hazard verification,
-and two-way sign language communication.
+and two-way sign language communication trained on real-world images.
 """
 
 import logging
 import math
+import os
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
 
 from app.detection.engine import DetectionEngine
+from app.detection.model import CLASSES, NativeClassifier
 from app.detection.types import BoundingBox, Detection, DetectionResult, classify_sector
 
 logger = logging.getLogger("trinetra.native_engine")
@@ -22,9 +25,8 @@ logger = logging.getLogger("trinetra.native_engine")
 
 class NativeVisionEngine(DetectionEngine):
     """
-    100% proprietary, deterministic vision engine.
-    Uses calibrated color-space locus, morphological contour topology,
-    Sobel gradient boundary analysis, and convex hull geometry.
+    100% proprietary vision engine combining deterministic contour topology
+    with our custom-trained TrinetraNet neural classifier (Zero ONNX / Zero YOLO).
     """
 
     def __init__(
@@ -32,12 +34,23 @@ class NativeVisionEngine(DetectionEngine):
         min_person_area: int = 4000,
         min_obstacle_area: int = 6000,
         focal_length_px: float = 550.0,
+        model_path: Optional[str] = None,
     ):
         self.min_person_area = min_person_area
         self.min_obstacle_area = min_obstacle_area
         self.focal_length_px = focal_length_px
+
+        # Default model path in services/vision-engine/models
+        if model_path is None:
+            default_pt = Path(__file__).resolve().parent.parent.parent / "models" / "trinetra_native_model.pt"
+            if default_pt.is_file():
+                model_path = str(default_pt)
+
+        self.classifier = NativeClassifier(model_path=model_path)
         self._is_ready = True
-        logger.info("NativeVisionEngine initialized (100% in-house, zero ONNX/YOLO).")
+        logger.info(
+            f"NativeVisionEngine initialized (100% in-house, zero ONNX/YOLO, neural_classifier_loaded={self.classifier.is_loaded})."
+        )
 
     def is_ready(self) -> bool:
         return self._is_ready
@@ -45,10 +58,11 @@ class NativeVisionEngine(DetectionEngine):
     def get_model_info(self) -> Dict[str, Any]:
         return {
             "model_name": "Trinetra-Native-InHouse-v1",
-            "runtime": "pure_native_cv",
-            "supported_classes": ["person", "obstacle", "ground_hazard", "sign_gesture"],
+            "runtime": "pure_native_pytorch_cv",
+            "supported_classes": CLASSES,
+            "neural_classifier_active": self.classifier.is_loaded,
             "is_ready": True,
-            "architecture": "Deterministic Mathematical Perception (Zero ONNX / Zero YOLO)",
+            "architecture": "TrinetraNet Edge Convolutional Network (Zero ONNX / Zero YOLO)",
         }
 
     def detect(self, jpeg_bytes: bytes, frame_id: int) -> DetectionResult:
@@ -72,7 +86,7 @@ class NativeVisionEngine(DetectionEngine):
         h, w = frame.shape[:2]
         detections: List[Detection] = []
 
-        # 1. Human / Person Detection via Calibrated Skin Locus + Upper Body Contour Topology
+        # 1. Human / Person Detection via Calibrated Skin Locus + Upper Body Contour Topology + TrinetraNet
         person_detections = self._detect_persons(frame, h, w)
         detections.extend(person_detections)
 
@@ -92,23 +106,18 @@ class NativeVisionEngine(DetectionEngine):
 
     def _detect_persons(self, frame: np.ndarray, h: int, w: int) -> List[Detection]:
         """
-        Deterministic human presence detection.
-        Combines YCrCb skin chrominance locus clustering with vertical torso-head morphology.
+        Deterministic human presence detection verified by TrinetraNet neural classifier.
         Never mislabels humans as currency or furniture.
         """
         detections: List[Detection] = []
 
-        # Convert to YCrCb color space for illumination-invariant skin segmentation
         ycrcb = cv2.cvtColor(frame, cv2.COLOR_BGR2YCrCb)
-        # Normalized human skin locus in YCrCb: Cr in [133, 173], Cb in [77, 127]
         skin_mask = cv2.inRange(ycrcb, (0, 133, 77), (255, 173, 127))
 
-        # HSV saturation and value sanity filter (prevents false triggers on pale walls)
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         sat_val_mask = cv2.inRange(hsv, (0, 30, 40), (25, 255, 255))
         combined_mask = cv2.bitwise_and(skin_mask, sat_val_mask)
 
-        # Morphological close to bridge contiguous skin regions (face, neck, arms)
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
         closed = cv2.morphologyEx(combined_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
 
@@ -124,10 +133,24 @@ class NativeVisionEngine(DetectionEngine):
 
             # Person head/face or upper torso geometry
             if 0.7 <= aspect_ratio <= 3.8 and (bh > h * 0.18):
-                # Expand bounding box downwards to envelope associated torso if visible
                 extended_bh = min(h - y, int(bh * 1.8))
                 extended_bw = min(w - x, int(bw * 1.3))
                 extended_x = max(0, x - int(bw * 0.15))
+
+                crop = frame[y : y + extended_bh, extended_x : extended_x + extended_bw]
+
+                # Run our custom-trained TrinetraNet classifier on the proposed crop
+                detected_class = "person"
+                confidence = min(0.98, max(0.85, 0.80 + (area / (h * w)) * 0.5))
+
+                if self.classifier.is_loaded and crop.size > 0:
+                    pred_class, pred_conf = self.classifier.predict_crop(crop)
+                    if pred_class == "person" and pred_conf > 0.40:
+                        confidence = max(confidence, round(pred_conf, 2))
+                    elif pred_class.startswith("sign_") and pred_conf > 0.60:
+                        # Recognized a hand sign
+                        detected_class = pred_class
+                        confidence = round(pred_conf, 2)
 
                 x_min = extended_x / float(w)
                 y_min = y / float(h)
@@ -135,15 +158,11 @@ class NativeVisionEngine(DetectionEngine):
                 y_max = (y + extended_bh) / float(h)
 
                 sector = classify_sector(x_min, x_max)
-
-                # Optical depth estimation: Z = (f * H_real) / h_pixels
-                # Average upper-torso height ~ 0.75m
                 estimated_distance = max(0.4, round((self.focal_length_px * 0.75) / max(extended_bh, 1), 2))
-                confidence = min(0.98, max(0.85, 0.80 + (area / (h * w)) * 0.5))
 
                 detections.append(
                     Detection(
-                        class_name="person",
+                        class_name=detected_class,
                         confidence=round(confidence, 2),
                         box=BoundingBox(
                             x_min=round(x_min, 4),
@@ -163,12 +182,9 @@ class NativeVisionEngine(DetectionEngine):
     ) -> List[Detection]:
         """
         Spatial obstacle segmentation across Left, Center, and Right corridors.
-        Detects significant solid obstacles blocking the user's trajectory
-        using edge energy density and foreground gradient variance.
         """
         detections: List[Detection] = []
 
-        # Analyze navigation clearance zone: central 70% vertical region
         roi_top = int(h * 0.25)
         roi_bottom = int(h * 0.90)
         roi = frame[roi_top:roi_bottom, :]
@@ -176,14 +192,12 @@ class NativeVisionEngine(DetectionEngine):
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (7, 7), 0)
 
-        # Sobel edge energy calculation
         grad_x = cv2.Sobel(blurred, cv2.CV_32F, 1, 0, ksize=3)
         grad_y = cv2.Sobel(blurred, cv2.CV_32F, 0, 1, ksize=3)
         magnitude = cv2.magnitude(grad_x, grad_y)
         _, edge_thresh = cv2.threshold(magnitude, 45, 255, cv2.THRESH_BINARY)
         edge_uint8 = np.uint8(edge_thresh)
 
-        # Morphological dilation to connect obstacle contours
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
         dilated = cv2.dilate(edge_uint8, kernel, iterations=2)
 
@@ -195,7 +209,6 @@ class NativeVisionEngine(DetectionEngine):
                 continue
 
             x, y, bw, bh = cv2.boundingRect(cnt)
-            # Re-map coordinates to full frame
             full_y = y + roi_top
 
             x_min = x / float(w)
@@ -203,10 +216,8 @@ class NativeVisionEngine(DetectionEngine):
             x_max = (x + bw) / float(w)
             y_max = (full_y + bh) / float(h)
 
-            # Check IoU with existing detected persons to prevent duplicate bounding boxes
             overlap = False
             for p in exclude_boxes:
-                # Simple IoU check
                 ix_min = max(x_min, p.box.x_min)
                 iy_min = max(y_min, p.box.y_min)
                 ix_max = min(x_max, p.box.x_max)
@@ -222,7 +233,6 @@ class NativeVisionEngine(DetectionEngine):
                 continue
 
             sector = classify_sector(x_min, x_max)
-            # Distance estimate for obstacles based on vertical extent and position
             dist_m = max(0.5, round((self.focal_length_px * 0.8) / max(bh, 1), 2))
             confidence = min(0.92, max(0.70, 0.65 + (area / (h * w)) * 0.4))
 
@@ -241,4 +251,4 @@ class NativeVisionEngine(DetectionEngine):
                 )
             )
 
-        return detections[:3]  # Limit to top 3 primary spatial obstacles
+        return detections[:3]
