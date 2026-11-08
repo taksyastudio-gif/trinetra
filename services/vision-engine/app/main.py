@@ -78,6 +78,7 @@ from app.audio.stt import (
     SUPPORTED_VOICE_COMMANDS,
     offline_stt_engine,
 )
+from app.detection.native_engine import NativeVisionEngine
 from app.detection.engine import (
     BoundingBox,
     Detection,

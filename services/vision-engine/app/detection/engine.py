@@ -414,34 +414,8 @@ class PerceptionPipeline:
             if wire_data:
                 result = dataclasses.replace(result, overhead_wire=wire_data)
 
-            # Semi-autonomous in-hand currency note recognition
-            auto_currency_data = None
+            # Auto currency disabled in favor of manual explicit scan only
             now_sec = time.time()
-            if (
-                packet.jpeg_bytes
-                and getattr(self, "currency_service", None) is not None
-                and (now_sec - getattr(self, "_last_auto_currency_time", 0.0)) >= 1.0
-            ):
-                try:
-                    curr_res = self.currency_service.identify(packet.jpeg_bytes)
-                    if curr_res.get("status") == "identified":
-                        self._last_auto_currency_time = now_sec
-                        auto_currency_data = curr_res
-                        spoken = curr_res.get("spoken_text") or curr_res.get("message")
-                        if self.speech_manager:
-                            self.speech_manager.announce(
-                                text=spoken,
-                                priority=SpeechPriority.SPATIAL_NAVIGATION,
-                                message_key=f"auto_currency:{curr_res.get('denomination')}",
-                                interrupt=True,
-                                cooldown=4.0,
-                                language="ne" if self.language.startswith("ne") else "en"
-                            )
-                except Exception as c_err:
-                    logger.debug(f"Auto-currency check error: {c_err}")
-
-            if auto_currency_data:
-                result = dataclasses.replace(result, auto_currency=auto_currency_data)
 
             # Two-way sign language & hand gesture translation
             sign_data = None
