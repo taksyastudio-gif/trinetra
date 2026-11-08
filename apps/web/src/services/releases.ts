@@ -124,7 +124,7 @@ export async function fetchLatestRelease(): Promise<LatestReleaseInfo> {
     }> = data.assets || [];
 
     const windowsAssetRaw = assets.find(
-      (a) => a.name.endsWith(".exe") || a.name.endsWith(".msi")
+      (a) => a.name.endsWith(".exe") || a.name.endsWith(".msi") || a.name.endsWith(".zip")
     );
     const androidAssetRaw = assets.find((a) => a.name.endsWith(".apk"));
     const checksumAssetRaw = assets.find(

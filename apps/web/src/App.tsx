@@ -127,12 +127,12 @@ export default function App() {
     }
   };
 
-  // Primary OS download button logic
+  // Primary OS download button logic - direct file download without opening GitHub
   const getPrimaryDownloadAction = () => {
     if (detectedOS === "Windows") {
       if (release?.windowsAsset?.downloadUrl) {
         return {
-          label: t.hero.downloadPrimary.replace("{os}", "Windows"),
+          label: `⬇️ ${t.hero.downloadPrimary.replace("{os}", "Windows")}`,
           url: release.windowsAsset.downloadUrl,
           isDirectDownload: true,
           size: formatBytes(release.windowsAsset.size),
@@ -149,10 +149,18 @@ export default function App() {
     if (detectedOS === "Android") {
       if (release?.androidAsset?.downloadUrl) {
         return {
-          label: t.hero.downloadPrimary.replace("{os}", "Android (APK)"),
+          label: `⬇️ ${t.hero.downloadPrimary.replace("{os}", "Android (APK)")}`,
           url: release.androidAsset.downloadUrl,
           isDirectDownload: true,
           size: formatBytes(release.androidAsset.size),
+        };
+      }
+      if (release?.windowsAsset?.downloadUrl) {
+        return {
+          label: "⬇️ Direct Download Windows Standalone Package",
+          url: release.windowsAsset.downloadUrl,
+          isDirectDownload: true,
+          size: formatBytes(release.windowsAsset.size),
         };
       }
       return {
@@ -164,6 +172,14 @@ export default function App() {
     }
 
     if (detectedOS === "iOS") {
+      if (release?.windowsAsset?.downloadUrl) {
+        return {
+          label: "⬇️ Direct Download Standalone Package",
+          url: release.windowsAsset.downloadUrl,
+          isDirectDownload: true,
+          size: formatBytes(release.windowsAsset.size),
+        };
+      }
       return {
         label: `${t.downloads.ios.title} (PWA)`,
         url: "#downloads",
@@ -172,9 +188,18 @@ export default function App() {
       };
     }
 
+    if (release?.windowsAsset?.downloadUrl) {
+      return {
+        label: "⬇️ Direct Download Windows Standalone (.zip)",
+        url: release.windowsAsset.downloadUrl,
+        isDirectDownload: true,
+        size: formatBytes(release.windowsAsset.size),
+      };
+    }
+
     return {
       label: t.hero.downloadFallback,
-      url: GITHUB_REPO_URL,
+      url: "#downloads",
       isDirectDownload: false,
       size: null,
     };
@@ -857,15 +882,25 @@ export default function App() {
                   <div className="changelog-body">
                     {release.body || "Performance improvements and bug fixes."}
                   </div>
-                  <div style={{ marginTop: "1.5rem" }}>
-                    <a
-                      href={release.htmlUrl}
-                      className="btn btn-secondary"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {t.changelog.viewRelease}
-                    </a>
+                  <div style={{ marginTop: "1.5rem", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                    {release.windowsAsset?.downloadUrl && (
+                      <a
+                        href={release.windowsAsset.downloadUrl}
+                        className="btn btn-primary"
+                        download
+                      >
+                        ⬇️ Direct Download Windows ({formatBytes(release.windowsAsset.size)})
+                      </a>
+                    )}
+                    {release.androidAsset?.downloadUrl && (
+                      <a
+                        href={release.androidAsset.downloadUrl}
+                        className="btn btn-primary"
+                        download
+                      >
+                        ⬇️ Direct Download APK ({formatBytes(release.androidAsset.size)})
+                      </a>
+                    )}
                   </div>
                 </>
               ) : (
