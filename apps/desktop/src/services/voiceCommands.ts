@@ -8,7 +8,7 @@
 
 import { cameraApi } from "./cameraApi";
 
-export type VoiceCommandType = "currency" | "bookmark" | "scene" | "ocr" | "mute" | "help" | "unknown";
+export type VoiceCommandType = "navigation" | "currency" | "ocr" | "sign_language" | "bookmark" | "scene" | "bus_route" | "qr_payment" | "date" | "mute" | "help" | "unknown";
 
 export interface VoiceCommandMatch {
   type: VoiceCommandType;
@@ -17,6 +17,16 @@ export interface VoiceCommandMatch {
 }
 
 // Trigger dictionaries in Devanagari and Romanized phonetic transcripts
+const NAVIGATION_TRIGGERS = [
+  "बाटो", "नेभिगेसन", "हिँड्ने", "बाटो देखाऊ", "वरिपरि बाटो",
+  "navigation", "path", "walk", "bato", "navigate"
+];
+
+const SIGN_TRIGGERS = [
+  "सांकेतिक भाषा", "साइन भाषा", "इशारा", "साइन अनुवाद",
+  "sign language", "sign", "gesture", "deaf"
+];
+
 const CURRENCY_TRIGGERS = [
   "पैसा", "रुपैयाँ", "नोट", "कतिको नोट", "पैसा हेर", "यो पैसा हेर त",
   "money", "currency", "cash", "banknote", "paisa", "rupiya", "not hera"
@@ -37,6 +47,21 @@ const OCR_TRIGGERS = [
   "read", "text", "read this", "padha", "ke lekheko", "akshar"
 ];
 
+const BUS_TRIGGERS = [
+  "बस", "बस नम्बर", "गाडी नम्बर", "कहाँ जाने", "बस रुट", "गाडी हेर",
+  "bus", "bus route", "gadi", "tempo", "route", "bus number"
+];
+
+const QR_TRIGGERS = [
+  "क्यूआर", "क्युआर", "पेमेन्ट", "भुक्तानी", "इसेवा", "खल्ती", "क्युआर स्क्यान",
+  "qr", "qr code", "payment", "esewa", "fonepay", "khalti", "scan qr"
+];
+
+const DATE_TRIGGERS = [
+  "मिति", "कति गते", "आज के बार", "क्यालेन्डर", "तिथि", "कति तारिख",
+  "date", "today", "calendar", "miti", "gate"
+];
+
 const MUTE_TRIGGERS = [
   "चुप", "शान्त", "रोक", "मौन", "चुप लाग", "शान्त बस",
   "stop", "quiet", "silence", "mute", "chup", "shanta"
@@ -48,6 +73,18 @@ const HELP_TRIGGERS = [
 
 export function matchVoiceCommand(rawTranscript: string): VoiceCommandMatch {
   const clean = rawTranscript.trim().toLowerCase();
+
+  for (const phrase of NAVIGATION_TRIGGERS) {
+    if (clean.includes(phrase.toLowerCase())) {
+      return { type: "navigation", transcript: rawTranscript, matchedPhrase: phrase };
+    }
+  }
+
+  for (const phrase of SIGN_TRIGGERS) {
+    if (clean.includes(phrase.toLowerCase())) {
+      return { type: "sign_language", transcript: rawTranscript, matchedPhrase: phrase };
+    }
+  }
 
   for (const phrase of CURRENCY_TRIGGERS) {
     if (clean.includes(phrase.toLowerCase())) {
@@ -70,6 +107,24 @@ export function matchVoiceCommand(rawTranscript: string): VoiceCommandMatch {
   for (const phrase of OCR_TRIGGERS) {
     if (clean.includes(phrase.toLowerCase())) {
       return { type: "ocr", transcript: rawTranscript, matchedPhrase: phrase };
+    }
+  }
+
+  for (const phrase of BUS_TRIGGERS) {
+    if (clean.includes(phrase.toLowerCase())) {
+      return { type: "bus_route", transcript: rawTranscript, matchedPhrase: phrase };
+    }
+  }
+
+  for (const phrase of QR_TRIGGERS) {
+    if (clean.includes(phrase.toLowerCase())) {
+      return { type: "qr_payment", transcript: rawTranscript, matchedPhrase: phrase };
+    }
+  }
+
+  for (const phrase of DATE_TRIGGERS) {
+    if (clean.includes(phrase.toLowerCase())) {
+      return { type: "date", transcript: rawTranscript, matchedPhrase: phrase };
     }
   }
 

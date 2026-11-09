@@ -63,6 +63,7 @@ from trinetra_core.caretaker import (
     InactivityMonitor,
     AutonomySupervisor,
 )
+from trinetra_core.hal import create_resilient_comms_adapter
 import time
 
 from pathlib import Path
@@ -78,6 +79,12 @@ from app.audio.stt import (
     SUPPORTED_VOICE_COMMANDS,
     offline_stt_engine,
 )
+from app.sensors.range_fusion import (
+    ConservativeSensorFusionEngine,
+    CaneRangingTelemetry,
+    FusedHazardAssessment,
+)
+from app.sensors.cane_reader import CaneSensorReader
 from app.detection.native_engine import NativeVisionEngine
 from app.detection.engine import (
     BoundingBox,
@@ -237,6 +244,21 @@ class AssistantChatRequest(BaseModel):
     message: str
     speak: Optional[bool] = False
     cloud_consent: Optional[bool] = False
+
+
+class CaneTelemetryRequest(BaseModel):
+    raw_line: Optional[str] = None
+    forward_dist_cm: Optional[float] = None
+    ground_dist_cm: Optional[float] = None
+    pitch_deg: Optional[float] = 0.0
+    roll_deg: Optional[float] = 0.0
+    cane_tapping: Optional[bool] = True
+
+
+class FusionEvaluateRequest(BaseModel):
+    vision_hazard_detected: bool = False
+    vision_hazard_type: str = "none"
+    vision_message_ne: str = ""
 
 
 class DeviceTelemetryRequest(BaseModel):
@@ -547,7 +569,7 @@ lite_mode_controller = LiteModeController(event_bus=event_bus)
 
 context_memory = ContextMemory(os.environ.get("TRINETRA_DB_PATH", "trinetra_caretaker.db"))
 assistant_manager.context_memory = context_memory
-caregiver_link = CaregiverLink(memory=context_memory)
+caregiver_link = CaregiverLink(memory=context_memory, comms_adapter=create_resilient_comms_adapter())
 routine_scheduler = RoutineScheduler(memory=context_memory, event_bus=event_bus)
 fall_detector = FallDetector()
 inactivity_monitor = InactivityMonitor()
@@ -576,10 +598,17 @@ autonomy_supervisor = AutonomySupervisor(
     speech_callback=_speak_caretaker_prompt,
 )
 
+sensor_fusion_engine = ConservativeSensorFusionEngine()
+cane_reader = CaneSensorReader(
+    fusion_engine=sensor_fusion_engine,
+    port=os.environ.get("TRINETRA_CANE_PORT"),
+)
 perception_pipeline = PerceptionPipeline(
     speech_manager=speech_manager,
     language=DEFAULT_LANGUAGE,
-    fusion=get_default_detection_fusion()
+    fusion=get_default_detection_fusion(),
+    currency_service=currency_service,
+    auto_currency_enabled=True,
 )
 global_language_lock = threading.RLock()
 
@@ -1324,6 +1353,30 @@ def create_app(
             )
         return result
 
+    class AutoCurrencyToggleRequest(BaseModel):
+        enabled: bool
+
+    @app.get("/api/currency/auto-mode", dependencies=[Depends(verify_token)], tags=["Currency"])
+    def get_auto_currency_mode():
+        return {
+            "enabled": bool(getattr(perception_pipeline, "auto_currency_enabled", True)),
+            "model_ready": bool(currency_service.status().get("available", False))
+        }
+
+    @app.post("/api/currency/auto-mode", dependencies=[Depends(verify_token)], tags=["Currency"])
+    def set_auto_currency_mode(payload: AutoCurrencyToggleRequest):
+        perception_pipeline.auto_currency_enabled = payload.enabled
+        state_text = "सक्रिय" if payload.enabled else "निष्क्रिय"
+        speech_manager.announce(
+            f"स्वतः मुद्रा पहिचान {state_text} भयो।",
+            priority=SpeechPriority.SPATIAL_NAVIGATION,
+            message_key="currency_auto_toggle",
+            interrupt=True,
+            cooldown=1.0,
+            language=perception_pipeline.language
+        )
+        return {"enabled": perception_pipeline.auto_currency_enabled}
+
     @app.post("/api/currency/identify", dependencies=[Depends(verify_token)], tags=["Currency"])
     def currency_identify(payload: CurrencyIdentifyRequest):
         packet = capture_capability_frame()
@@ -1932,6 +1985,61 @@ def create_app(
     def caretaker_get_audit(limit: int = 50):
         """Returns tamper-evident action audit trail with SHA-256 hash chains."""
         return context_memory.get_audit_trail(limit=limit)
+
+    @app.post(
+        "/api/sensors/cane/telemetry",
+        dependencies=[Depends(verify_token)],
+        summary="Ingest Smart Cane Telemetry",
+        tags=["Sensors"]
+    )
+    def ingest_cane_telemetry(payload: CaneTelemetryRequest):
+        """Ingests raw serial/BLE string or structured physical telemetry from smart cane."""
+        if payload.raw_line:
+            packet = cane_reader.ingest_line(payload.raw_line)
+        else:
+            packet = CaneRangingTelemetry(
+                timestamp=time.time(),
+                forward_dist_cm=payload.forward_dist_cm,
+                ground_dist_cm=payload.ground_dist_cm,
+                pitch_deg=payload.pitch_deg or 0.0,
+                roll_deg=payload.roll_deg or 0.0,
+                cane_tapping=payload.cane_tapping if payload.cane_tapping is not None else True,
+            )
+            sensor_fusion_engine.ingest_ranging_telemetry(packet)
+        return {"status": "ingested", "success": packet is not None}
+
+    @app.get(
+        "/api/sensors/cane/status",
+        dependencies=[Depends(verify_token)],
+        summary="Get Smart Cane Connection Status",
+        tags=["Sensors"]
+    )
+    def get_cane_status():
+        """Returns cane connection state, staleness, and packet counters."""
+        return cane_reader.get_status()
+
+    @app.post(
+        "/api/sensors/fusion/evaluate",
+        dependencies=[Depends(verify_token)],
+        summary="Evaluate Conservative Sensor Fusion",
+        tags=["Sensors"]
+    )
+    def evaluate_sensor_fusion(payload: FusionEvaluateRequest):
+        """Evaluates physical ranging against optical vision and applies veto if needed."""
+        assessment = sensor_fusion_engine.evaluate_fusion(
+            vision_hazard_detected=payload.vision_hazard_detected,
+            vision_hazard_type=payload.vision_hazard_type,
+            vision_message_ne=payload.vision_message_ne,
+        )
+        return {
+            "alert_level": assessment.alert_level,
+            "primary_source": assessment.primary_source,
+            "distance_m": assessment.distance_m,
+            "hazard_description_ne": assessment.hazard_description_ne,
+            "hazard_description_en": assessment.hazard_description_en,
+            "veto_applied": assessment.veto_applied,
+            "timestamp": assessment.timestamp,
+        }
 
     @app.get(
         "/api/culture/date",

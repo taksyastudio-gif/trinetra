@@ -76,3 +76,50 @@ def test_mjpeg_adapter_reconnect_on_stream_end(monkeypatch):
         assert exc.max_attempts == 5
     finally:
         adapter.stop()
+
+
+def test_mjpeg_adapter_drops_stale_intermediate_frames(monkeypatch):
+    """Verifies that buffered older frames are discarded in favor of the freshest frame."""
+    jpeg1 = FakeCameraAdapter()._generate_test_jpeg()
+    jpeg2 = FakeCameraAdapter()._generate_test_jpeg()
+    # Feed two frames together in a single stream chunk
+    payload = (
+        b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + jpeg1 + b"\r\n"
+        b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + jpeg2 + b"\r\n"
+    )
+    response = ChunkedResponse(payload)
+    monkeypatch.setattr(camera_adapter, "urlopen", lambda *_args, **_kwargs: response)
+
+    adapter = MJPEGStreamCameraAdapter("http://127.0.0.1:8080/stream")
+    adapter.start()
+    packet = adapter.capture_packet()
+
+    # Should capture the freshest frame (jpeg2), dropping jpeg1
+    assert packet.jpeg_bytes == jpeg2
+    assert adapter._dropped_frames == 1
+    adapter.stop()
+
+
+def test_mjpeg_adapter_authenticates_with_token(monkeypatch):
+    """Verifies that auth_token is attached to request headers and query string."""
+    captured_requests = []
+    jpeg = FakeCameraAdapter()._generate_test_jpeg()
+    response = ChunkedResponse(b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + jpeg + b"\r\n")
+
+    def mock_urlopen(req, timeout=4.0):
+        captured_requests.append(req)
+        return response
+
+    monkeypatch.setattr(camera_adapter, "urlopen", mock_urlopen)
+
+    adapter = MJPEGStreamCameraAdapter("http://192.168.4.1:81/stream", auth_token="trinetra-secret-token")
+    adapter.start()
+    packet = adapter.capture_packet()
+
+    assert len(captured_requests) >= 1
+    req = captured_requests[0]
+    assert req.get_header("X-trinetra-token") == "trinetra-secret-token" or req.headers.get("X-trinetra-token") == "trinetra-secret-token" or req.headers.get("X-Trinetra-Token") == "trinetra-secret-token"
+    assert "token=trinetra-secret-token" in req.full_url
+    assert packet.frame_id == 1
+    adapter.stop()
+

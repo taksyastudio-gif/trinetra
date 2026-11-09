@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { CameraOperationalState, DetectionItem, GroundHazardInfo } from "../types/api";
 
 interface CameraPreviewProps {
@@ -24,6 +24,8 @@ interface CameraPreviewProps {
   } | null;
   showSectors?: boolean;
   onDoubleTap?: () => void;
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
 }
 
 const NEPALI_CLASS_LABELS: Record<string, string> = {
@@ -62,8 +64,53 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   signGesture = null,
   showSectors = true,
   onDoubleTap,
+  onSwipeLeft,
+  onSwipeRight,
 }) => {
   const isStreaming = cameraState === "active" && frameUrl !== null;
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const lastTapRef = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      touchStartRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        time: Date.now(),
+      };
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const now = Date.now();
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - touchStartRef.current.x;
+    const dy = touch.clientY - touchStartRef.current.y;
+    const dt = now - touchStartRef.current.time;
+
+    // Detect horizontal swipe (> 60px horizontal, < 60px vertical, < 400ms)
+    if (Math.abs(dx) > 60 && Math.abs(dy) < 60 && dt < 400) {
+      if (dx < 0 && onSwipeLeft) {
+        onSwipeLeft();
+      } else if (dx > 0 && onSwipeRight) {
+        onSwipeRight();
+      }
+      touchStartRef.current = null;
+      return;
+    }
+
+    // Detect double-tap anywhere on screen
+    if (Math.abs(dx) < 25 && Math.abs(dy) < 25) {
+      if (now - lastTapRef.current < 350) {
+        if (onDoubleTap) onDoubleTap();
+        lastTapRef.current = 0;
+      } else {
+        lastTapRef.current = now;
+      }
+    }
+    touchStartRef.current = null;
+  };
 
   const getLabel = (className: string, conf: number) => {
     const localized = NEPALI_CLASS_LABELS[className.toLowerCase()] || className.toUpperCase();
@@ -94,6 +141,8 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         className="camera-viewport-frame"
         aria-labelledby="preview-heading"
         onDoubleClick={onDoubleTap}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         style={{ cursor: isStreaming ? "pointer" : "default" }}
         title={isStreaming ? "Double-tap to describe scene or read text" : ""}
       >

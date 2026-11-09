@@ -332,3 +332,24 @@ def test_kalman_repeated_announcement_suppression_compatibility():
     time.sleep(0.05)
     assert len(fake_backend.spoken_history) >= 2
     speech_mgr.shutdown()
+
+
+def test_sector_classification_hysteresis():
+    """Verifies that sector hysteresis prevents flickering between Left and Center when hovering near x=0.33."""
+    from app.detection.types import BoundingBox, classify_sector
+
+    # Initial detection at 0.31 -> strictly left
+    b1 = BoundingBox(x_min=0.29, y_min=0.4, x_max=0.33, y_max=0.6)  # center = 0.31
+    sec1 = classify_sector(b1)
+    assert sec1 == "left"
+
+    # Hovering slightly across knife-edge border at 0.34 (within deadband 0.33..0.37)
+    b2 = BoundingBox(x_min=0.32, y_min=0.4, x_max=0.36, y_max=0.6)  # center = 0.34
+    sec2 = classify_sector(b2, current_sector=sec1)
+    # Stays in left due to deadband hysteresis!
+    assert sec2 == "left"
+
+    # Moving firmly into Center corridor at 0.40 (> 0.37)
+    b3 = BoundingBox(x_min=0.38, y_min=0.4, x_max=0.42, y_max=0.6)  # center = 0.40
+    sec3 = classify_sector(b3, current_sector=sec2)
+    assert sec3 == "center"

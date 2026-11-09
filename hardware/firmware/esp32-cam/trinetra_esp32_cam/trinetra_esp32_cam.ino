@@ -32,8 +32,9 @@
 #define USE_STATION_MODE 1
 
 #if USE_STATION_MODE
-  const char* ssid     = "A21";
-  const char* password = "ANDROID27@26";
+  // Replace with your field hotspot or router credentials
+  const char* ssid     = "YOUR_WIFI_SSID";
+  const char* password = "YOUR_WIFI_PASSWORD";
 #else
   const char* ap_ssid  = "Trinetra-ChestCam";
   const char* ap_pass  = "trinetra123";  // Min 8 chars
@@ -63,8 +64,13 @@
 #define FLASH_LED_PIN      4
 
 // ============================================================================
-// 3. HTTP MJPEG Stream Constants
+// 3. HTTP MJPEG Stream Constants & Security
 // ============================================================================
+// Optional stream authentication token to guard against SoftAP eavesdropping.
+// If set to a non-empty string, clients must provide ?token=<STREAM_AUTH_TOKEN>
+// or header X-Trinetra-Token: <STREAM_AUTH_TOKEN>. Leave "" for open mode.
+#define STREAM_AUTH_TOKEN "trinetra-edge-2026"
+
 #define PART_BOUNDARY "123456789000000000000987654321"
 static const char* _STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" PART_BOUNDARY;
 static const char* _STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
@@ -75,6 +81,41 @@ httpd_handle_t camera_httpd = NULL;
 
 // Stream handler for port 81 (/stream)
 static esp_err_t stream_handler(httpd_req_t *req) {
+  // 1. Security Check: Token-based authentication
+  #ifdef STREAM_AUTH_TOKEN
+  if (strlen(STREAM_AUTH_TOKEN) > 0) {
+    bool authorized = false;
+    // Check X-Trinetra-Token header
+    char token_hdr[64];
+    if (httpd_req_get_hdr_value_str(req, "X-Trinetra-Token", token_hdr, sizeof(token_hdr)) == ESP_OK) {
+      if (strcmp(token_hdr, STREAM_AUTH_TOKEN) == 0) {
+        authorized = true;
+      }
+    }
+    // Fallback: Check query string ?token=...
+    if (!authorized) {
+      char query_buf[128];
+      if (httpd_req_get_url_query_str(req, query_buf, sizeof(query_buf)) == ESP_OK) {
+        char token_param[64];
+        if (httpd_query_key_value(query_buf, "token", token_param, sizeof(token_param)) == ESP_OK) {
+          if (strcmp(token_param, STREAM_AUTH_TOKEN) == 0) {
+            authorized = true;
+          }
+        }
+      }
+    }
+    if (!authorized) {
+      Serial.println("[Security] Stream access rejected: missing or invalid authentication token");
+      httpd_resp_set_status(req, "403 Forbidden");
+      httpd_resp_set_type(req, "application/json");
+      httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+      const char* err_resp = "{\"error\":\"Unauthorized stream access. Valid token required.\"}";
+      httpd_resp_send(req, err_resp, strlen(err_resp));
+      return ESP_FAIL;
+    }
+  }
+  #endif
+
   camera_fb_t * fb = NULL;
   esp_err_t res = ESP_OK;
   size_t _jpg_buf_len = 0;

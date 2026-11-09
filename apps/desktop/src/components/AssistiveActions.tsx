@@ -11,7 +11,26 @@ export const AssistiveActions: React.FC<Props> = ({ disabled, onTriggerSOS }) =>
   const [result, setResult] = useState("क्यामेरा सुरु गरेर विकल्प छान्नुहोस् वा आवाज दिनुहोस्।");
   const [busy, setBusy] = useState(false);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const [isAutoCurrency, setIsAutoCurrency] = useState(true);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+
+  useEffect(() => {
+    cameraApi.getAutoCurrencyMode()
+      .then((res) => setIsAutoCurrency(res.enabled))
+      .catch(() => {});
+  }, []);
+
+  const toggleAutoCurrency = async () => {
+    const next = !isAutoCurrency;
+    setIsAutoCurrency(next);
+    try {
+      await cameraApi.setAutoCurrencyMode(next);
+      setResult(next ? "स्वतः नोट पहिचान सक्रिय भयो।" : "स्वतः नोट पहिचान बन्द गरियो।");
+      triggerHaptic("command");
+    } catch {
+      setIsAutoCurrency(!next);
+    }
+  };
 
   const run = useCallback(async (
     action: () => Promise<{ text?: string; message?: string | null; denomination?: number | null; identity?: string | null; bookmark?: any }>
@@ -39,7 +58,13 @@ export const AssistiveActions: React.FC<Props> = ({ disabled, onTriggerSOS }) =>
   const handleVoiceCommand = useCallback((match: VoiceCommandMatch) => {
     if (disabled || busy) return;
 
-    if (match.type === "currency") {
+    if (match.type === "navigation") {
+      cameraApi.announceSpeech("बाटो नेभिगेसन मोड सक्रिय छ।", "spatial_navigation", true);
+      setResult("बाटो नेभिगेसन मोड सक्रिय छ।");
+    } else if (match.type === "sign_language") {
+      cameraApi.announceSpeech("सांकेतिक भाषा अनुवादक सक्रिय छ।", "spatial_navigation", true);
+      setResult("सांकेतिक भाषा अनुवादक सक्रिय छ।");
+    } else if (match.type === "currency") {
       run(() => cameraApi.identifyCurrency());
     } else if (match.type === "bookmark") {
       run(() => cameraApi.saveLocationBookmark());
@@ -47,6 +72,24 @@ export const AssistiveActions: React.FC<Props> = ({ disabled, onTriggerSOS }) =>
       run(() => cameraApi.queryScene("के छ?"));
     } else if (match.type === "ocr") {
       run(() => cameraApi.readText());
+    } else if (match.type === "bus_route") {
+      run(async () => {
+        const res = await cameraApi.identifyBusRoute();
+        return { message: res.spoken_phrase_ne || (res.matched ? `बस: ${res.destination}` : "बसको बोर्ड फेला परेन।") };
+      });
+    } else if (match.type === "qr_payment") {
+      run(async () => {
+        const res = await cameraApi.identifyQrPayment();
+        return { message: res.spoken_phrase_ne || (res.detected ? `क्युआर: ${res.merchant_name}` : "क्युआर कोड फेला परेन।") };
+      });
+    } else if (match.type === "date") {
+      run(async () => {
+        const res = await cameraApi.getCultureDate();
+        if (res.spoken_ne) {
+          cameraApi.announceSpeech(res.spoken_ne, "informational", true).catch(() => {});
+        }
+        return { message: res.spoken_ne || res.formatted_bs };
+      });
     } else if (match.type === "mute") {
       cameraApi.stopSpeech().then(() => {
         setResult("अडियो बन्द गरियो।");
@@ -126,12 +169,58 @@ export const AssistiveActions: React.FC<Props> = ({ disabled, onTriggerSOS }) =>
           💵 नोट चिन्नुहोस्
         </button>
         <button
+          className={`btn ${isAutoCurrency ? "btn-primary" : "btn-outline"}`}
+          disabled={disabled || busy}
+          onClick={toggleAutoCurrency}
+          aria-pressed={isAutoCurrency}
+          aria-label={isAutoCurrency ? "स्वतः मुद्रा पहिचान बन्द गर्नुहोस्" : "स्वतः मुद्रा पहिचान सुरु गर्नुहोस्"}
+          style={isAutoCurrency ? { borderColor: "rgba(16, 185, 129, 0.8)", boxShadow: "0 0 10px rgba(16, 185, 129, 0.3)" } : undefined}
+        >
+          {isAutoCurrency ? "⚡ स्वतः नोट: चालू" : "⚡ स्वतः नोट: बन्द"}
+        </button>
+        <button
           className="btn btn-outline"
           disabled={disabled || busy}
           onClick={() => run(() => cameraApi.readText())}
           aria-label="अक्षर पढ्नुहोस्: साइनबोर्ड वा कागज पढ्नुहोस्"
         >
           📖 पढ्नुहोस्
+        </button>
+        <button
+          className="btn btn-outline"
+          disabled={disabled || busy}
+          onClick={() => run(async () => {
+            const res = await cameraApi.identifyBusRoute();
+            return { message: res.spoken_phrase_ne || (res.matched ? `बस: ${res.destination}` : "बसको बोर्ड फेला परेन।") };
+          })}
+          aria-label="सार्वजनिक बस गन्तव्य र नम्बर पहिचान गर्नुहोस्"
+        >
+          🚌 बस रुट
+        </button>
+        <button
+          className="btn btn-outline"
+          disabled={disabled || busy}
+          onClick={() => run(async () => {
+            const res = await cameraApi.identifyQrPayment();
+            return { message: res.spoken_phrase_ne || (res.detected ? `क्युआर: ${res.merchant_name}` : "क्युआर कोड फेला परेन।") };
+          })}
+          aria-label="क्युआर भुक्तानी स्ट्यान्डी स्क्यान गर्नुहोस् (Fonepay, eSewa, Khalti)"
+        >
+          📱 क्युआर भुक्तानी
+        </button>
+        <button
+          className="btn btn-outline"
+          disabled={disabled || busy}
+          onClick={() => run(async () => {
+            const res = await cameraApi.getCultureDate();
+            if (res.spoken_ne) {
+              cameraApi.announceSpeech(res.spoken_ne, "informational", true).catch(() => {});
+            }
+            return { message: res.spoken_ne || res.formatted_bs };
+          })}
+          aria-label="आजको नेपाली मिति (विक्रम संवत्) र बार सुन्नुहोस्"
+        >
+          📅 मिति (BS)
         </button>
         <button
           className="btn btn-outline"

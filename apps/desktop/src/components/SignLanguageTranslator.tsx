@@ -8,6 +8,8 @@ interface SignGestureInfo {
   confidence: number;
   message: string;
   symbol: string;
+  first_person_ne?: string;
+  third_person_ne?: string;
   bounding_box?: number[] | null;
 }
 
@@ -22,7 +24,8 @@ export const SignLanguageTranslator: React.FC<SignLanguageTranslatorProps> = ({
 }) => {
   const [spokenSubtitle, setSpokenSubtitle] = useState<string>("");
   const [isListening, setIsListening] = useState<boolean>(false);
-  const [autoSpeakGestures, setAutoSpeakGestures] = useState<boolean>(false);
+  const [autoSpeakGestures, setAutoSpeakGestures] = useState<boolean>(true);
+  const [perspective, setPerspective] = useState<"first_person" | "third_person">("first_person");
   const [dismissedGesture, setDismissedGesture] = useState<string | null>(null);
   const [lastAnnouncedType, setLastAnnouncedType] = useState<string | null>(null);
 
@@ -38,9 +41,12 @@ export const SignLanguageTranslator: React.FC<SignLanguageTranslatorProps> = ({
       currentSign.gesture_type !== dismissedGesture
     ) {
       setLastAnnouncedType(currentSign.gesture_type);
-      cameraApi.announceSpeech(currentSign.message, "spatial_navigation", false).catch(() => {});
+      const textToSpeak = perspective === "first_person"
+        ? (currentSign.first_person_ne || currentSign.message)
+        : (currentSign.third_person_ne || currentSign.message);
+      cameraApi.announceSpeech(textToSpeak, "spatial_navigation", false).catch(() => {});
     }
-  }, [currentSign, autoSpeakGestures, lastAnnouncedType, dismissedGesture]);
+  }, [currentSign, autoSpeakGestures, perspective, lastAnnouncedType, dismissedGesture]);
 
   // Hearing person speaks -> Real-time Devanagari live subtitle for deaf person
   const startHearingSpeechToSubtitle = async () => {
@@ -174,7 +180,7 @@ export const SignLanguageTranslator: React.FC<SignLanguageTranslatorProps> = ({
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontSize: "1.4rem" }}>🤟</span>
           <h2 style={{ fontSize: "1.1rem", margin: 0, fontWeight: 700 }}>
-            सांकेतिक भाषा तथा दोहोरो संवाद (Sign Language & Subtitle Bridge)
+            सांकेतिक अक्षर अभ्यास तथा दोहोरो संवाद (Fingerspelling Demo & Subtitle Bridge)
           </h2>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -188,17 +194,54 @@ export const SignLanguageTranslator: React.FC<SignLanguageTranslatorProps> = ({
           </label>
           <span
             style={{
-              backgroundColor: "rgba(56, 189, 248, 0.2)",
-              color: "#38bdf8",
+              backgroundColor: "rgba(245, 158, 11, 0.2)",
+              color: "#fbbf24",
               padding: "3px 10px",
               borderRadius: "12px",
               fontSize: "0.75rem",
               fontWeight: 600,
             }}
           >
-            Bounded Prototype (5 Words)
+            Fingerspelling Demo (NSL in Partnership)
           </span>
         </div>
+      </div>
+
+      {/* Realistic Scope Notice */}
+      <div
+        role="note"
+        style={{
+          backgroundColor: "rgba(56, 189, 248, 0.08)",
+          border: "1px solid rgba(56, 189, 248, 0.25)",
+          borderRadius: "8px",
+          padding: "8px 12px",
+          marginBottom: "12px",
+          fontSize: "0.8rem",
+          color: "#93c5fd",
+          lineHeight: 1.4,
+        }}
+      >
+        ℹ️ <strong>सूचना:</strong> यो क्यामेरा मोडलले अहिले सांकेतिक वर्णमालाका औंलाका अक्षरहरू (Fingerspelling) मात्र पहिचान गर्छ। पूर्ण राष्ट्रिय सांकेतिक भाषा (NSL) सम्बन्धी सहकार्य अघि बढाइँदैछ। दैनिक संवादका लागि तलको 'बोलेको सुन्नुहोस्' (Speech-to-Large-Text) तुरुन्त प्रयोग गर्नुहोस्।
+      </div>
+
+      {/* Speaker Perspective Mode */}
+      <div style={{ display: "flex", gap: "8px", marginBottom: "14px", background: "rgba(15, 23, 42, 0.6)", padding: "4px", borderRadius: "8px" }}>
+        <button
+          type="button"
+          className={`btn btn-sm ${perspective === "first_person" ? "btn-primary" : "btn-outline"}`}
+          onClick={() => setPerspective("first_person")}
+          style={{ flex: 1, fontSize: "0.8rem", padding: "6px 8px" }}
+        >
+          👤 म आफैँ संकेत गर्छु (मौन प्रयोगकर्ता / First Person)
+        </button>
+        <button
+          type="button"
+          className={`btn btn-sm ${perspective === "third_person" ? "btn-primary" : "btn-outline"}`}
+          onClick={() => setPerspective("third_person")}
+          style={{ flex: 1, fontSize: "0.8rem", padding: "6px 8px" }}
+        >
+          👥 अगाडिको व्यक्ति (सुन्ने प्रयोगकर्ता / Third Person)
+        </button>
       </div>
 
       {/* Real-time Hand Sign Live Detection Alert with Cancel/Dismiss Option */}
@@ -231,7 +274,7 @@ export const SignLanguageTranslator: React.FC<SignLanguageTranslatorProps> = ({
                 क्यामेरामा संकेत भेटियो ({currentSign.gesture_type.toUpperCase()} • {Math.round(currentSign.confidence * 100)}%):
               </span>
               <div style={{ fontSize: "1.05rem", fontWeight: 800, color: "#ffffff", marginTop: "2px" }}>
-                {currentSign.message}
+                {perspective === "first_person" ? (currentSign.first_person_ne || currentSign.message) : (currentSign.third_person_ne || currentSign.message)}
               </div>
             </div>
           </div>
@@ -302,11 +345,21 @@ export const SignLanguageTranslator: React.FC<SignLanguageTranslatorProps> = ({
             Honest Rule: 5 Bounded Essential Vocabulary
           </span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "8px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "8px" }}>
           <button
             type="button"
             className="btn btn-outline"
-            onClick={() => speakSignPhrase("मलाई मद्दत वा सहयोग चाहियो!")}
+            onClick={() => speakSignPhrase("नमस्ते हजुर! सन्चै हुनुहुन्छ?")}
+            style={{ fontSize: "0.85rem", padding: "8px", textAlign: "left", display: "flex", alignItems: "center", gap: "6px" }}
+          >
+            <span>🙏</span>
+            <span>नमस्ते (Greeting)</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => speakSignPhrase("मलाई बाटो काट्न थोरै मद्दत चाहियो, प्लिज।")}
             style={{ fontSize: "0.85rem", padding: "8px", textAlign: "left", display: "flex", alignItems: "center", gap: "6px", borderColor: "rgba(239, 68, 68, 0.4)" }}
           >
             <span>🆘</span>
@@ -316,7 +369,7 @@ export const SignLanguageTranslator: React.FC<SignLanguageTranslatorProps> = ({
           <button
             type="button"
             className="btn btn-outline"
-            onClick={() => speakSignPhrase("मलाई पिउने पानी चाहियो।")}
+            onClick={() => speakSignPhrase("मलाई अलिकति पिउने पानी दिनुहुन्छ कि?")}
             style={{ fontSize: "0.85rem", padding: "8px", textAlign: "left", display: "flex", alignItems: "center", gap: "6px", borderColor: "rgba(56, 189, 248, 0.4)" }}
           >
             <span>💧</span>
@@ -326,7 +379,7 @@ export const SignLanguageTranslator: React.FC<SignLanguageTranslatorProps> = ({
           <button
             type="button"
             className="btn btn-outline"
-            onClick={() => speakSignPhrase("मलाई खाना वा खाजा चाहियो।")}
+            onClick={() => speakSignPhrase("मलाई खाना अथवा खाजा खान मन लाग्यो।")}
             style={{ fontSize: "0.85rem", padding: "8px", textAlign: "left", display: "flex", alignItems: "center", gap: "6px", borderColor: "rgba(234, 179, 8, 0.4)" }}
           >
             <span>🍲</span>
@@ -336,7 +389,17 @@ export const SignLanguageTranslator: React.FC<SignLanguageTranslatorProps> = ({
           <button
             type="button"
             className="btn btn-outline"
-            onClick={() => speakSignPhrase("धन्यवाद!")}
+            onClick={() => speakSignPhrase("हजुर, यसको मूल्य कति पर्यो नि?")}
+            style={{ fontSize: "0.85rem", padding: "8px", textAlign: "left", display: "flex", alignItems: "center", gap: "6px", borderColor: "rgba(16, 185, 129, 0.4)" }}
+          >
+            <span>💵</span>
+            <span>मूल्य (Price)</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => speakSignPhrase("धेरै धेरै धन्यवाद हजुर, म एकदम आभारी छु!")}
             style={{ fontSize: "0.85rem", padding: "8px", textAlign: "left", display: "flex", alignItems: "center", gap: "6px" }}
           >
             <span>🤝</span>
@@ -346,7 +409,7 @@ export const SignLanguageTranslator: React.FC<SignLanguageTranslatorProps> = ({
           <button
             type="button"
             className="btn btn-outline"
-            onClick={() => speakSignPhrase("म बिरामी छु, मलाई सन्चो छैन।")}
+            onClick={() => speakSignPhrase("मलाई एकदम सन्चो छैन, कृपया तुरुन्तै मद्दत गर्नुहोस्!")}
             style={{ fontSize: "0.85rem", padding: "8px", textAlign: "left", display: "flex", alignItems: "center", gap: "6px", borderColor: "rgba(244, 63, 94, 0.4)" }}
           >
             <span>🤒</span>
@@ -356,31 +419,21 @@ export const SignLanguageTranslator: React.FC<SignLanguageTranslatorProps> = ({
           <button
             type="button"
             className="btn btn-outline"
-            onClick={() => speakSignPhrase("नमस्ते!")}
-            style={{ fontSize: "0.85rem", padding: "8px", textAlign: "left", display: "flex", alignItems: "center", gap: "6px" }}
-          >
-            <span>🙏</span>
-            <span>नमस्ते (Namaste)</span>
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => speakSignPhrase("कृपया एकछिन रोकिनुहोस्।")}
+            onClick={() => speakSignPhrase("एकछिन रोकिनुहोस् है!")}
             style={{ fontSize: "0.85rem", padding: "8px", textAlign: "left", display: "flex", alignItems: "center", gap: "6px" }}
           >
             <span>✋</span>
-            <span>रोकिनुहोस् (Stop)</span>
+            <span>रोकिनुहोस् (Wait)</span>
           </button>
 
           <button
             type="button"
             className="btn btn-outline"
-            onClick={() => speakSignPhrase("हुन्छ, ठीक छ।")}
+            onClick={() => speakSignPhrase("हुन्छ, एकदम ठीक छ!")}
             style={{ fontSize: "0.85rem", padding: "8px", textAlign: "left", display: "flex", alignItems: "center", gap: "6px" }}
           >
             <span>👍</span>
-            <span>हुन्छ (OK)</span>
+            <span>हुन्छ (Agree)</span>
           </button>
         </div>
       </div>

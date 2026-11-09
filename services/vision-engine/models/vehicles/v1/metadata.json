@@ -1,0 +1,21 @@
+{
+  "model_name": "nepali_vehicles_classifier",
+  "architecture": "TrinetraVehicleNet",
+  "total_images_trained": 4842,
+  "two_wheelers_count": 1823,
+  "four_wheelers_count": 2974,
+  "input_shape": [
+    1,
+    3,
+    160,
+    160
+  ],
+  "classes": [
+    "two_wheeler",
+    "four_wheeler",
+    "no_vehicle"
+  ],
+  "val_accuracy": 0.9601,
+  "exported_at_utc": 1794214824.8300061,
+  "framework": "PyTorch -> ONNX"
+}

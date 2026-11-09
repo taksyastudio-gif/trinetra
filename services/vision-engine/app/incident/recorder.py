@@ -14,10 +14,13 @@ Provides accessible, on-demand visual and telemetry capture with:
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 import hashlib
+import hmac
 import json
 import logging
 import os
 from pathlib import Path
+import re
+import secrets
 import threading
 import time
 from typing import Any, Dict, List, Optional, Tuple
@@ -86,6 +89,26 @@ class IncidentRecorder:
         self.default_language: str = DEFAULT_LANGUAGE
         self._active_prealert: Optional[Dict[str, Any]] = None
         self._lock = threading.RLock()
+        self._device_secret = self._init_device_secret()
+
+    def _init_device_secret(self) -> bytes:
+        """Initializes or loads persistent 256-bit local device HMAC signing key."""
+        key_dir = Path.home() / ".trinetra"
+        key_file = key_dir / "device_hmac.key"
+        if key_file.is_file():
+            try:
+                raw = key_file.read_bytes()
+                if len(raw) >= 32:
+                    return raw
+            except Exception:
+                pass
+        try:
+            key_dir.mkdir(parents=True, exist_ok=True)
+            new_key = secrets.token_bytes(32)
+            key_file.write_bytes(new_key)
+            return new_key
+        except Exception:
+            return b"trinetra_device_fallback_signing_key_32bytes"
 
     def trigger_prealert(
         self,
@@ -274,9 +297,9 @@ class IncidentRecorder:
         meta_json_bytes = json.dumps(meta_preliminary, sort_keys=True, indent=2).encode("utf-8")
         metadata_sha256 = hashlib.sha256(meta_json_bytes).hexdigest()
 
-        # 4. Combined integrity digest (image_sha256 + metadata_sha256)
+        # 4. Combined device HMAC-SHA-256 signature (image_sha256 + metadata_sha256)
         combined_payload = f"{image_sha256}:{metadata_sha256}".encode("utf-8")
-        integrity_digest = hashlib.sha256(combined_payload).hexdigest()
+        integrity_digest = hmac.new(self._device_secret, combined_payload, hashlib.sha256).hexdigest()
 
         record = IncidentRecord(
             incident_id=incident_id,
@@ -342,6 +365,9 @@ class IncidentRecorder:
 
     def get_incident(self, incident_id: str) -> Optional[Tuple[IncidentRecord, bytes]]:
         """Retrieves record and raw image bytes by incident ID."""
+        if not incident_id or not re.match(r"^inc_[a-zA-Z0-9_\-]+$", incident_id):
+            logger.warning(f"Rejected invalid incident ID format: {incident_id}")
+            return None
         safe_id = Path(incident_id).name
         with self._lock:
             json_path = self.storage_dir / f"{safe_id}.json"
@@ -364,6 +390,8 @@ class IncidentRecorder:
         Cryptographically verifies whether on-disk JPEG and metadata files match
         their original SHA-256 digests.
         """
+        if not incident_id or not re.match(r"^inc_[a-zA-Z0-9_\-]+$", incident_id):
+            return {"incident_id": incident_id, "verified": False, "error": "Invalid incident ID format"}
         safe_id = Path(incident_id).name
         with self._lock:
             json_path = self.storage_dir / f"{safe_id}.json"
@@ -383,10 +411,12 @@ class IncidentRecorder:
                 actual_img_sha = hashlib.sha256(img_path.read_bytes()).hexdigest()
                 image_matches = (actual_img_sha == expected_img_sha)
 
-                # Recalculate combined integrity digest
+                # Recalculate combined integrity digest using device HMAC key (with legacy fallback)
                 expected_meta_sha = data.get("metadata_sha256")
-                actual_combined = hashlib.sha256(f"{actual_img_sha}:{expected_meta_sha}".encode("utf-8")).hexdigest()
-                digest_matches = (actual_combined == expected_digest)
+                combined_payload = f"{actual_img_sha}:{expected_meta_sha}".encode("utf-8")
+                actual_hmac = hmac.new(self._device_secret, combined_payload, hashlib.sha256).hexdigest()
+                actual_legacy = hashlib.sha256(combined_payload).hexdigest()
+                digest_matches = (expected_digest == actual_hmac) or (expected_digest == actual_legacy)
 
                 is_valid = image_matches and digest_matches
 
@@ -395,9 +425,10 @@ class IncidentRecorder:
                     "verified": is_valid,
                     "image_integrity": image_matches,
                     "digest_integrity": digest_matches,
+                    "signing_method": "hmac_sha256" if expected_digest == actual_hmac else "legacy_sha256",
                     "image_sha256": actual_img_sha,
                     "expected_sha256": expected_img_sha,
-                    "integrity_digest": actual_combined,
+                    "integrity_digest": actual_hmac if expected_digest == actual_hmac else actual_legacy,
                     "legal_disclaimer": LEGAL_DISCLAIMER_TEXT
                 }
             except Exception as exc:

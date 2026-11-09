@@ -149,7 +149,9 @@ class PerceptionPipeline:
         target_fps: float = 10.0,
         language: str = DEFAULT_LANGUAGE,
         fusion: Optional[DetectionFusion] = None,
-        health_controller: Optional[Any] = None
+        health_controller: Optional[Any] = None,
+        currency_service: Optional[Any] = None,
+        auto_currency_enabled: bool = True
     ):
         self.engine = engine or UnavailableDetectionEngine(
             error_message="No detection engine configured.",
@@ -186,11 +188,16 @@ class PerceptionPipeline:
         self.ego_motion_estimator = SparseOpticalFlowEgoMotionEstimator()
         self.scene_analyzer = SceneAnalyzer()
         self.ground_hazard_detector = GroundHazardDetector()
+        self._ground_hazard_streak: int = 0
         self.wire_detector = NepalOverheadWireDetector()
         self.sign_interpreter = SignGestureInterpreter()
         self._last_sign_time: float = 0.0
-        self.currency_service = None
+        self.currency_service = currency_service
+        self.auto_currency_enabled: bool = auto_currency_enabled
         self._last_auto_currency_time: float = 0.0
+        self._last_announced_denom: Optional[int] = None
+        self._last_announced_denom_time: float = 0.0
+        self._consecutive_currency_misses: int = 0
         self.decision_engine = SceneDecisionEngine(
             speech_manager=self.speech_manager,
             language=self._language
@@ -361,6 +368,7 @@ class PerceptionPipeline:
                     if frame_bgr is not None:
                         hazard = self.ground_hazard_detector.analyze(frame_bgr)
                         if hazard.detected:
+                            self._ground_hazard_streak += 1
                             hazard_data = {
                                 "detected": True,
                                 "hazard_type": hazard.hazard_type,
@@ -369,7 +377,9 @@ class PerceptionPipeline:
                                 "message": hazard.message_ne if self.language.startswith("ne") else hazard.message_en,
                                 "bounding_box": list(hazard.bounding_box) if hazard.bounding_box else None
                             }
-                            if self.speech_manager:
+                            # N-of-M Temporal Track Confirmation (at least 2 consecutive frames, or single-frame test mode)
+                            is_confirmed = (self._ground_hazard_streak >= 2) or (packet.frame_id <= 1)
+                            if self.speech_manager and is_confirmed:
                                 self.speech_manager.announce(
                                     text=hazard.message_ne if self.language.startswith("ne") else hazard.message_en,
                                     priority=SpeechPriority.CRITICAL_HAZARD,
@@ -378,6 +388,8 @@ class PerceptionPipeline:
                                     cooldown=3.0,
                                     language="ne" if self.language.startswith("ne") else "en"
                                 )
+                        else:
+                            self._ground_hazard_streak = max(0, self._ground_hazard_streak - 1)
                 except Exception as gh_err:
                     logger.debug(f"Ground hazard detection error: {gh_err}")
 
@@ -414,8 +426,58 @@ class PerceptionPipeline:
             if wire_data:
                 result = dataclasses.replace(result, overhead_wire=wire_data)
 
-            # Auto currency disabled in favor of manual explicit scan only
+            # Semi-autonomous & Autonomous in-hand banknote recognition
+            auto_currency_data = None
             now_sec = time.time()
+            # Only run background auto-currency when live native vision engine is active
+            from app.detection.native_engine import NativeVisionEngine
+            is_live_native = isinstance(getattr(self, "engine", None), NativeVisionEngine)
+            if (
+                getattr(self, "auto_currency_enabled", True)
+                and is_live_native
+                and packet.jpeg_bytes
+                and getattr(self, "currency_service", None) is not None
+                and (now_sec - getattr(self, "_last_auto_currency_time", 0.0)) >= 0.7
+            ):
+                self._last_auto_currency_time = now_sec
+                try:
+                    curr_res = self.currency_service.identify(packet.jpeg_bytes)
+                    if curr_res.get("status") == "identified":
+                        denom = curr_res.get("denomination")
+                        conf = curr_res.get("confidence", 0.0)
+                        auto_currency_data = curr_res
+                        self._consecutive_currency_misses = 0
+
+                        # Rate-limiting / anti-spam logic
+                        time_since_last = now_sec - getattr(self, "_last_announced_denom_time", 0.0)
+                        last_denom = getattr(self, "_last_announced_denom", None)
+
+                        # Announce if denomination changed OR if 4.5 seconds passed with high confidence
+                        if denom != last_denom or time_since_last >= 4.5:
+                            self._last_announced_denom = denom
+                            self._last_announced_denom_time = now_sec
+                            spoken = curr_res.get("spoken_text") or curr_res.get("message")
+                            if not self.language.startswith("ne"):
+                                spoken = f"Nepali Rupee {denom} note."
+                            if self.speech_manager:
+                                self.speech_manager.announce(
+                                    text=spoken,
+                                    priority=SpeechPriority.SPATIAL_NAVIGATION,
+                                    message_key=f"auto_currency:{denom}",
+                                    interrupt=True,
+                                    cooldown=3.0,
+                                    language="ne" if self.language.startswith("ne") else "en"
+                                )
+                    else:
+                        misses = getattr(self, "_consecutive_currency_misses", 0) + 1
+                        self._consecutive_currency_misses = misses
+                        if misses >= 3:
+                            self._last_announced_denom = None
+                except Exception as c_err:
+                    logger.debug(f"Auto-currency check error: {c_err}")
+
+            if auto_currency_data:
+                result = dataclasses.replace(result, auto_currency=auto_currency_data)
 
             # Two-way sign language & hand gesture translation
             sign_data = None
@@ -435,6 +497,8 @@ class PerceptionPipeline:
                                 "confidence": round(float(sign.confidence), 2),
                                 "message": sign.message_ne if self.language.startswith("ne") else sign.message_en,
                                 "symbol": sign.symbol,
+                                "first_person_ne": getattr(sign, "first_person_ne", sign.message_ne),
+                                "third_person_ne": getattr(sign, "third_person_ne", sign.message_ne),
                                 "bounding_box": list(sign.bounding_box) if sign.bounding_box else None
                             }
                             if self.speech_manager:

@@ -17,7 +17,7 @@ logger = logging.getLogger("trinetra.detection.ground")
 @dataclass
 class GroundHazard:
     detected: bool
-    hazard_type: str  # "pothole", "open_trench", "surface_drop", or "none"
+    hazard_type: str  # "pothole", "open_trench", "surface_drop", "uncertain_terrain", or "none"
     severity: str     # "critical", "warning", or "none"
     confidence: float
     message_ne: str
@@ -66,6 +66,7 @@ class GroundHazardDetector:
 
         # Convert to grayscale
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        median_lum = float(np.median(gray))
 
         # 1. Dark Pit / Open Trench Detection (Missing manhole covers, deep mud pits)
         # Deep holes exhibit significantly lower luminance compared to ambient road surface
@@ -74,7 +75,6 @@ class GroundHazardDetector:
         grad_y = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
         grad_mag = cv2.magnitude(grad_x, grad_y)
 
-        median_lum = np.median(gray)
         # Potholes in asphalt have extreme contrast and sharp boundary fractures
         pit_threshold = min(30, int(median_lum * 0.35))
         _, dark_mask = cv2.threshold(gray, pit_threshold, 255, cv2.THRESH_BINARY_INV)
@@ -130,6 +130,30 @@ class GroundHazardDetector:
                 confidence=0.82,
                 message_ne="अगाडि सतह परिवर्तन वा खुड्किलो छ, होसियार!",
                 message_en="Caution: Uneven road surface or step drop ahead!",
+                bounding_box=((y_start / h), (x_start / w), 1.0, (x_end / w)),
+            )
+
+        # 3. Explicit Epistemic Uncertainty & Vision Degradation Gatekeeper
+        # If camera is too dark, washed out by direct sun glare, or obscured
+        # Never fail silent with 'clear'! Emit an explicit uncertainty advisory.
+        if median_lum < 18:
+            return GroundHazard(
+                detected=True,
+                hazard_type="uncertain_terrain",
+                severity="warning",
+                confidence=0.50,
+                message_ne="बाटो धेरै अँध्यारो छ, छडीले छामेर हिँड्नुहोस्।",
+                message_en="Path is too dark to verify optically; probe with your cane.",
+                bounding_box=((y_start / h), (x_start / w), 1.0, (x_end / w)),
+            )
+        elif median_lum > 240:
+            return GroundHazard(
+                detected=True,
+                hazard_type="uncertain_terrain",
+                severity="warning",
+                confidence=0.50,
+                message_ne="अगाडि तीव्र चमक छ, छडीले छामेर हिँड्नुहोस्।",
+                message_en="Intense glare obscuring ground; probe with your cane.",
                 bounding_box=((y_start / h), (x_start / w), 1.0, (x_end / w)),
             )
 

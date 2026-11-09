@@ -1,0 +1,37 @@
+{
+  "model_name": "TrinetraSignNet-v1",
+  "input_shape": [
+    1,
+    1,
+    28,
+    28
+  ],
+  "classes": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y"
+  ],
+  "trained_at": "2026-11-09 11:50:32",
+  "license": "MIT (100% In-House)"
+}

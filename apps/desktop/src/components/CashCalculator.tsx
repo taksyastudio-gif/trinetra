@@ -105,6 +105,29 @@ export const CashCalculator: React.FC<CashCalculatorProps> = ({
         )}
       </div>
 
+      {/* Safety Notice: Denomination only, not counterfeit authentication */}
+      <div
+        role="note"
+        aria-label="Currency Recognition Boundary"
+        style={{
+          backgroundColor: "rgba(245, 158, 11, 0.12)",
+          border: "1px solid rgba(245, 158, 11, 0.35)",
+          borderRadius: "8px",
+          padding: "8px 12px",
+          marginBottom: "12px",
+          fontSize: "0.8rem",
+          color: "#fbbf24",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}
+      >
+        <span>⚠️</span>
+        <span>
+          <strong>सूचना:</strong> यो प्रणालीले नोटको दर (Denomination) मात्र चिन्न मद्दत गर्छ। यसले नक्कली वा सक्कली (Counterfeit Authenticity) प्रमाणीकरण गर्दैन।
+        </span>
+      </div>
+
       {/* Real-time Hand-held Note Action */}
       {detectedDenomination && detectedDenomination > 0 && (
         <div

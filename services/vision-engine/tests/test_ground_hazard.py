@@ -54,3 +54,23 @@ def test_ground_hazard_pipeline_integration():
         assert "खाल्डो" in res.ground_hazard["message"] or "ढल" in res.ground_hazard["message"]
     finally:
         pipeline.stop()
+
+
+def test_ground_hazard_uncertainty_in_extreme_darkness():
+    """Verifies that pitch dark environments trigger an explicit uncertainty warning rather than claiming 'clear'."""
+    detector = GroundHazardDetector()
+    frame = np.full((480, 640, 3), 10, dtype=np.uint8)  # Very dark alley
+    hazard = detector.analyze(frame)
+    assert hazard.detected is True
+    assert hazard.hazard_type == "uncertain_terrain"
+    assert "अँध्यारो" in hazard.message_ne
+
+
+def test_ground_hazard_uncertainty_in_extreme_glare():
+    """Verifies that blinding direct sun glare triggers an explicit probe advisory."""
+    detector = GroundHazardDetector()
+    frame = np.full((480, 640, 3), 250, dtype=np.uint8)  # Blinding direct glare
+    hazard = detector.analyze(frame)
+    assert hazard.detected is True
+    assert hazard.hazard_type == "uncertain_terrain"
+    assert "चमक" in hazard.message_ne

@@ -12,6 +12,7 @@ import { SignLanguageTranslator } from "./components/SignLanguageTranslator";
 import { InstallModal } from "./components/InstallModal";
 import { UpdateNotification } from "./components/UpdateNotification";
 import { triggerHaptic } from "./services/voiceCommands";
+import { playAudioCue } from "./services/audioCue";
 import { cameraApi, ApiError } from "./services/cameraApi";
 import { spatialAudioRadar } from "./services/spatialAudioRadar";
 import {
@@ -60,6 +61,7 @@ export const App: React.FC = () => {
   const [isLanguageUpdating, setIsLanguageUpdating] = useState<boolean>(false);
   const [mirrorMode, setMirrorMode] = useState<boolean>(true);
   const targetFpsRef = useRef<number>(30);
+  const hasAnnouncedWelcomeRef = useRef<boolean>(false);
 
   // Caretaker Safety Protocol: 10-Second Countdown Pre-Alert
   const [preAlertActive, setPreAlertActive] = useState<boolean>(false);
@@ -86,9 +88,13 @@ export const App: React.FC = () => {
     }
   }, []);
 
+  // Caretaker Safety Protocol: Multimodal 10-Second Countdown (Audio + High-Contrast Visual + Haptics for DeafBlind)
   useEffect(() => {
     if (!preAlertActive) return;
     const interval = window.setInterval(() => {
+      // Multimodal pulse on each second tick
+      triggerHaptic("hazard");
+      playAudioCue("hazard");
       setPreAlertSeconds((prev) => {
         if (prev <= 1) {
           setPreAlertActive(false);
@@ -108,6 +114,8 @@ export const App: React.FC = () => {
   const lastFpsTimestampRef = useRef<number>(performance.now());
   const isDetectionActiveRef = useRef<boolean>(false);
   const autoStartAttemptedRef = useRef<boolean>(false);
+  const lastFrameTimeRef = useRef<number>(performance.now());
+  const lastWatchdogAlertTimeRef = useRef<number>(0);
 
   // Sync ref with state for polling loop
   useEffect(() => {
@@ -158,6 +166,15 @@ export const App: React.FC = () => {
       await cameraApi.checkHealth();
       setConnectionStatus("connected");
       setErrorMessage(null);
+
+      if (!hasAnnouncedWelcomeRef.current) {
+        hasAnnouncedWelcomeRef.current = true;
+        playAudioCue("startup");
+        const welcome = language === "ne"
+          ? "त्रिनेत्र सक्रिय छ। यो सेतो छडीको सहयोगी उपकरण हो, छडीको विकल्प होइन। माइकमा 'पैसा हेर', 'के छ', वा 'पढ' भन्नुहोस्। स्क्रिनमा जहाँसुकै डबल ट्याप गर्नुहोस्, वा स्पेसबार थिच्नुहोस्।"
+          : "Trinetra is ready. This supplements your white cane; it never replaces primary cane mobility. Speak 'Money', 'Look', or 'Read' into the mic, double-tap anywhere on screen, or press Spacebar.";
+        cameraApi.announceSpeech(welcome, "spatial_navigation", false).catch(() => {});
+      }
 
       // Check current camera status on backend
       const status = await cameraApi.getStatus();
@@ -267,12 +284,41 @@ export const App: React.FC = () => {
     setE2eLatencyMs(0);
   }, [updateFrameUrl]);
 
+  // Safety Heartbeat and Hardware Watchdog Guard (Zero Silent Failures)
+  useEffect(() => {
+    if (cameraState !== "active") return;
+
+    const interval = window.setInterval(() => {
+      const now = performance.now();
+      const elapsedSinceLastFrame = now - lastFrameTimeRef.current;
+
+      // Watchdog: If active camera has not yielded a frame in > 800ms, alert the blind user!
+      if (elapsedSinceLastFrame > 800) {
+        if (now - lastWatchdogAlertTimeRef.current > 3500) {
+          lastWatchdogAlertTimeRef.current = now;
+          playAudioCue("watchdog_alert");
+          cameraApi.announceSpeech(
+            language === "ne" ? "क्यामेरा रोकियो, होसियार!" : "Camera feed paused, stay alert!",
+            "critical_hazard",
+            true
+          ).catch(() => {});
+        }
+      } else {
+        // Healthy Live Heartbeat: Soft subtle tick so blind user knows sensing is continuous
+        playAudioCue("heartbeat");
+      }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [cameraState, language]);
+
   const pollNextFrame = useCallback(async () => {
     if (!isPollingRef.current) return;
 
     try {
       const fetchStart = performance.now();
       const { blob, metadata } = await cameraApi.fetchFrame();
+      lastFrameTimeRef.current = performance.now();
       const newUrl = URL.createObjectURL(blob);
       updateFrameUrl(newUrl);
       setCameraState("active");
@@ -512,6 +558,37 @@ export const App: React.FC = () => {
     }
   }, [cameraState]);
 
+  // Touchscreen Swipe Gestures for Blind Users (Cycle modes without aiming)
+  const handleSwipeLeft = useCallback(() => {
+    playAudioCue("mode_switch");
+    triggerHaptic("command");
+    setFeatureTab((prev) => {
+      const next = prev === "vision" ? "actions" : prev === "actions" ? "deaf" : "vision";
+      const spoken = next === "vision"
+        ? (language === "ne" ? "बाटो नेभिगेसन मोड" : "Navigation mode")
+        : next === "actions"
+        ? (language === "ne" ? "मुद्रा तथा अक्षर वाचन मोड" : "Currency and Reader mode")
+        : (language === "ne" ? "सांकेतिक भाषा अनुवादक" : "Sign language translator");
+      cameraApi.announceSpeech(spoken, "spatial_navigation", true).catch(() => {});
+      return next;
+    });
+  }, [language]);
+
+  const handleSwipeRight = useCallback(() => {
+    playAudioCue("mode_switch");
+    triggerHaptic("command");
+    setFeatureTab((prev) => {
+      const next = prev === "vision" ? "deaf" : prev === "deaf" ? "actions" : "vision";
+      const spoken = next === "vision"
+        ? (language === "ne" ? "बाटो नेभिगेसन मोड" : "Navigation mode")
+        : next === "actions"
+        ? (language === "ne" ? "मुद्रा तथा अक्षर वाचन मोड" : "Currency and Reader mode")
+        : (language === "ne" ? "सांकेतिक भाषा अनुवादक" : "Sign language translator");
+      cameraApi.announceSpeech(spoken, "spatial_navigation", true).catch(() => {});
+      return next;
+    });
+  }, [language]);
+
   // Change Speech Language dynamically (without restart)
   const handleLanguageChange = useCallback(async (newLang: SupportedLanguage) => {
     if (newLang === language) return;
@@ -569,12 +646,46 @@ export const App: React.FC = () => {
       } else if (e.code === "Digit1" && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         setFeatureTab("vision");
+        playAudioCue("mode_switch");
+        triggerHaptic("command");
+        cameraApi.announceSpeech(language === "ne" ? "बाटो नेभिगेसन सक्रिय।" : "Navigation mode active.", "spatial_navigation", true).catch(() => {});
       } else if (e.code === "Digit2" && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
-        setFeatureTab("deaf");
+        setFeatureTab("actions");
+        playAudioCue("mode_switch");
+        triggerHaptic("command");
+        cameraApi.identifyCurrency().catch(() => {});
       } else if (e.code === "Digit3" && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         setFeatureTab("actions");
+        playAudioCue("mode_switch");
+        triggerHaptic("command");
+        cameraApi.readText().catch(() => {});
+      } else if (e.code === "Digit4" && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setFeatureTab("deaf");
+        playAudioCue("mode_switch");
+        triggerHaptic("command");
+        cameraApi.announceSpeech(language === "ne" ? "सांकेतिक भाषा अनुवादक सक्रिय।" : "Sign language translator active.", "spatial_navigation", true).catch(() => {});
+      } else if (e.code === "Digit5" && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setFeatureTab("actions");
+        playAudioCue("mode_switch");
+        triggerHaptic("command");
+        cameraApi.identifyBusRoute().catch(() => {});
+      } else if (e.code === "Digit6" && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setFeatureTab("actions");
+        playAudioCue("mode_switch");
+        triggerHaptic("command");
+        cameraApi.identifyQrPayment().catch(() => {});
+      } else if (e.code === "KeyH" && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        playAudioCue("tap");
+        const guide = language === "ne"
+          ? "त्रिनेत्र सहायक: माइकमा 'पैसा हेर', 'के छ', वा 'पढ' भन्नुहोस्। स्क्रिनमा डबल ट्याप गरेर दृश्य बुझ्नुहोस्, दायाँ-बायाँ स्वाइप गरेर मोड फेर्नुहोस्, वा स्पेसबार थिच्नुहोस्।"
+          : "Trinetra Guide: Speak 'Money', 'Look', or 'Read'. Double-tap to describe the scene, swipe left or right to switch modes, or press Spacebar.";
+        cameraApi.announceSpeech(guide, "critical_hazard", true).catch(() => {});
       } else if (e.code === "KeyD" && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         handleToggleDetection();
@@ -587,7 +698,11 @@ export const App: React.FC = () => {
         handleLanguageChange(nextLang);
       } else if (e.code === "KeyC" && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
-        verifyHealth();
+        cameraApi.getAutoCurrencyMode().then(async (cur) => {
+          const next = !cur.enabled;
+          await cameraApi.setAutoCurrencyMode(next);
+          triggerHaptic("command");
+        }).catch(() => {});
       }
     };
 
@@ -663,6 +778,7 @@ export const App: React.FC = () => {
           errorMessage={errorMessage}
           framesCaptured={framesCaptured}
           perceptionHealth={perceptionHealth}
+          wearableActive={cameraState === "active" && !mirrorMode}
         />
 
         <DeviceSelector
@@ -672,6 +788,29 @@ export const App: React.FC = () => {
           onSelectDevice={setSelectedDeviceIndex}
           onRefreshDevices={fetchDevices}
         />
+
+        {/* Mandatory Safety Notice: White Cane Supplementation */}
+        <div
+          role="note"
+          aria-label="Safety Reminder"
+          style={{
+            backgroundColor: "rgba(234, 179, 8, 0.12)",
+            border: "1px solid rgba(234, 179, 8, 0.4)",
+            borderRadius: "8px",
+            padding: "8px 14px",
+            marginBottom: "8px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            fontSize: "0.85rem",
+            color: "#fef08a",
+          }}
+        >
+          <span style={{ fontSize: "1.2rem" }}>🦯</span>
+          <span>
+            <strong>सुरक्षा सूचना (Safety Reminder):</strong> त्रिनेत्र सेतो छडीको सहयोगी उपकरण मात्र हो, छडी वा प्राथमिक तालिमको विकल्प होइन (Supplements your white cane — never replaces primary cane mobility).
+          </span>
+        </div>
 
         {/* Mode Navigation: 3 Clear Purpose-Driven Modes */}
         <nav
@@ -692,7 +831,7 @@ export const App: React.FC = () => {
         >
           {[
             { id: "vision", label: "👁️ Vision & Road Safety (दृष्टि र बाटो निर्देशन)" },
-            { id: "deaf", label: "🤝 Deaf & Hearing Two-Way Bridge (बहिरा तथा सुस्त श्रवण संवाद)" },
+            { id: "deaf", label: "🤟 Fingerspelling Demo & Speech-to-Text (सांकेतिक अक्षर तथा संवाद)" },
             { id: "actions", label: "⚡ Essential Tools & SOS (उपकरण तथा आपतकालीन)" },
           ].map((tab) => {
             const isActive = featureTab === tab.id;
@@ -773,8 +912,8 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* Camera Preview is active for Vision Mode and Deaf Two-Way Sign Translation */}
-        {(featureTab === "vision" || featureTab === "deaf") && (
+        {/* Camera Preview and gestures active across all tabs for consistent eyes-free interaction */}
+        {(featureTab === "vision" || featureTab === "deaf" || featureTab === "actions") && (
           <>
             <CameraPreview
               cameraState={cameraState}
@@ -785,6 +924,8 @@ export const App: React.FC = () => {
               autoCurrency={autoCurrency}
               signGesture={signGesture}
               onDoubleTap={handleDoubleTap}
+              onSwipeLeft={handleSwipeLeft}
+              onSwipeRight={handleSwipeRight}
             />
 
             {/* Primary Accessible Controls */}

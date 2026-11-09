@@ -1,0 +1,55 @@
+{
+  "system": "TRINETRA_MOBILE_EDGE",
+  "version": "1.0.0",
+  "target_platform": "Android 11+ (API 30+)",
+  "minimum_hardware": {
+    "soc": "ARM64-v8a (Quad-core 2.0GHz+)",
+    "ram_mb": 3072,
+    "internal_storage_mb": 1024,
+    "camera": "Back RGB Camera with auto-exposure, minimum 720p @ 30fps",
+    "battery_capacity_mah": 4500,
+    "connectivity": ["Cellular 2G/4G GSM (SMS)", "Bluetooth 5.0 LE (Cane)", "GPS/GLONASS"]
+  },
+  "runtime_stack": {
+    "language": "Kotlin 2.0+ / C++20 NDK",
+    "camera_pipeline": "Android Jetpack CameraX (ImageAnalysis zero-copy YUV_420_888)",
+    "inference_engine": "ONNX Runtime Mobile (v1.17+) with NNAPI and XNNPACK execution providers",
+    "speech_tts": "Sherpa-ONNX / Piper-Android (Nepali VITS model quantized to INT8)",
+    "speech_asr": "Sherpa-ONNX / Vosk-Android (Nepali acoustic model offline)",
+    "local_database": "Android Room / SQLite (encrypted local incident & telemetry log)",
+    "telephony": "Android SmsManager (Direct GSM baseband dispatch, no SMS gateway)"
+  },
+  "safety_envelope": {
+    "max_frame_latency_ms": 150,
+    "watchdog_stall_threshold_ms": 800,
+    "heartbeat_interval_ms": 2500,
+    "heartbeat_frequency_hz": 320,
+    "ultrasonic_stop_distance_cm": 90.0,
+    "tof_dropoff_threshold_cm": 12.0,
+    "emergency_countdown_seconds": 10.0,
+    "white_cane_disclaimer": "Supplements your white cane. Never navigate without your physical cane."
+  },
+  "models": [
+    {
+      "name": "yolov8n_nepal_assistive",
+      "format": "ONNX INT8",
+      "input_resolution": [320, 320, 3],
+      "target_inference_latency_ms": 42.0,
+      "task": "Obstacle & regional landmark detection"
+    },
+    {
+      "name": "nepal_banknote_classifier",
+      "format": "MobileNetV2 INT8",
+      "input_resolution": [224, 224, 3],
+      "target_inference_latency_ms": 16.0,
+      "task": "Currency denomination reading only (authenticity caveats applied)"
+    },
+    {
+      "name": "ground_hazard_filter",
+      "format": "Native C++ / OpenCV NDK",
+      "input_resolution": [160, 120, 1],
+      "target_inference_latency_ms": 8.0,
+      "task": "Photometric uncertainty gating & ground gradient analysis"
+    }
+  ]
+}

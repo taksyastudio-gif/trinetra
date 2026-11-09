@@ -313,5 +313,122 @@
     "accuracy_meters": 50.0,
     "saved_at_iso": "2026-11-08T12:08:32.128122+00:00",
     "osm_url": "https://www.openstreetmap.org/?mlat=27.700769&mlon=85.30014#map=18/27.700769/85.30014"
+  },
+  {
+    "id": "bm_9a171598",
+    "label": "Ratnapark Stop",
+    "latitude": 27.700769,
+    "longitude": 85.30014,
+    "accuracy_meters": 50.0,
+    "saved_at_iso": "2026-11-08T14:57:48.076576+00:00",
+    "osm_url": "https://www.openstreetmap.org/?mlat=27.700769&mlon=85.30014#map=18/27.700769/85.30014"
+  },
+  {
+    "id": "bm_0a1d2d0f",
+    "label": "Ratnapark Stop",
+    "latitude": 27.700769,
+    "longitude": 85.30014,
+    "accuracy_meters": 50.0,
+    "saved_at_iso": "2026-11-09T03:39:37.455256+00:00",
+    "osm_url": "https://www.openstreetmap.org/?mlat=27.700769&mlon=85.30014#map=18/27.700769/85.30014"
+  },
+  {
+    "id": "bm_2df1e409",
+    "label": "Ratnapark Stop",
+    "latitude": 27.700769,
+    "longitude": 85.30014,
+    "accuracy_meters": 50.0,
+    "saved_at_iso": "2026-11-09T04:13:50.392991+00:00",
+    "osm_url": "https://www.openstreetmap.org/?mlat=27.700769&mlon=85.30014#map=18/27.700769/85.30014"
+  },
+  {
+    "id": "bm_06fbb32f",
+    "label": "Ratnapark Stop",
+    "latitude": 27.700769,
+    "longitude": 85.30014,
+    "accuracy_meters": 50.0,
+    "saved_at_iso": "2026-11-09T04:50:05.364356+00:00",
+    "osm_url": "https://www.openstreetmap.org/?mlat=27.700769&mlon=85.30014#map=18/27.700769/85.30014"
+  },
+  {
+    "id": "bm_7185a59d",
+    "label": "Ratnapark Stop",
+    "latitude": 27.700769,
+    "longitude": 85.30014,
+    "accuracy_meters": 50.0,
+    "saved_at_iso": "2026-11-09T06:13:31.212986+00:00",
+    "osm_url": "https://www.openstreetmap.org/?mlat=27.700769&mlon=85.30014#map=18/27.700769/85.30014"
+  },
+  {
+    "id": "bm_f3701079",
+    "label": "Ratnapark Stop",
+    "latitude": 27.700769,
+    "longitude": 85.30014,
+    "accuracy_meters": 50.0,
+    "saved_at_iso": "2026-11-09T07:24:25.191743+00:00",
+    "osm_url": "https://www.openstreetmap.org/?mlat=27.700769&mlon=85.30014#map=18/27.700769/85.30014"
+  },
+  {
+    "id": "bm_ff13a6e2",
+    "label": "Ratnapark Stop",
+    "latitude": 27.700769,
+    "longitude": 85.30014,
+    "accuracy_meters": 50.0,
+    "saved_at_iso": "2026-11-09T07:50:32.563684+00:00",
+    "osm_url": "https://www.openstreetmap.org/?mlat=27.700769&mlon=85.30014#map=18/27.700769/85.30014"
+  },
+  {
+    "id": "bm_3c480743",
+    "label": "Ratnapark Stop",
+    "latitude": 27.700769,
+    "longitude": 85.30014,
+    "accuracy_meters": 50.0,
+    "saved_at_iso": "2026-11-09T07:56:38.748453+00:00",
+    "osm_url": "https://www.openstreetmap.org/?mlat=27.700769&mlon=85.30014#map=18/27.700769/85.30014"
+  },
+  {
+    "id": "bm_4514c1cf",
+    "label": "Ratnapark Stop",
+    "latitude": 27.700769,
+    "longitude": 85.30014,
+    "accuracy_meters": 50.0,
+    "saved_at_iso": "2026-11-09T07:59:53.360760+00:00",
+    "osm_url": "https://www.openstreetmap.org/?mlat=27.700769&mlon=85.30014#map=18/27.700769/85.30014"
+  },
+  {
+    "id": "bm_de181b1c",
+    "label": "Ratnapark Stop",
+    "latitude": 27.700769,
+    "longitude": 85.30014,
+    "accuracy_meters": 50.0,
+    "saved_at_iso": "2026-11-09T08:04:28.484728+00:00",
+    "osm_url": "https://www.openstreetmap.org/?mlat=27.700769&mlon=85.30014#map=18/27.700769/85.30014"
+  },
+  {
+    "id": "bm_490b14b0",
+    "label": "Ratnapark Stop",
+    "latitude": 27.700769,
+    "longitude": 85.30014,
+    "accuracy_meters": 50.0,
+    "saved_at_iso": "2026-11-09T08:29:21.747281+00:00",
+    "osm_url": "https://www.openstreetmap.org/?mlat=27.700769&mlon=85.30014#map=18/27.700769/85.30014"
+  },
+  {
+    "id": "bm_869fa53c",
+    "label": "Ratnapark Stop",
+    "latitude": 27.700769,
+    "longitude": 85.30014,
+    "accuracy_meters": 50.0,
+    "saved_at_iso": "2026-11-09T09:02:22.864353+00:00",
+    "osm_url": "https://www.openstreetmap.org/?mlat=27.700769&mlon=85.30014#map=18/27.700769/85.30014"
+  },
+  {
+    "id": "bm_e00ca0b9",
+    "label": "Ratnapark Stop",
+    "latitude": 27.700769,
+    "longitude": 85.30014,
+    "accuracy_meters": 50.0,
+    "saved_at_iso": "2026-11-09T09:43:10.903085+00:00",
+    "osm_url": "https://www.openstreetmap.org/?mlat=27.700769&mlon=85.30014#map=18/27.700769/85.30014"
   }
 ]

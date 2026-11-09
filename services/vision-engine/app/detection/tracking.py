@@ -345,7 +345,7 @@ class TrackedObject:
         self.box = detection.box
         self.predicted_box = self.box
         self.confidence = detection.confidence
-        self.sector = detection.sector
+        self.sector = classify_sector(self.box, current_sector=self.sector)
         self.last_seen = timestamp
         self.hit_streak += 1
         self.miss_streak = 0
@@ -457,7 +457,7 @@ class TrackedObject:
         self.miss_streak += 1
         if self.predicted_box is not None:
             self.box = self.predicted_box
-            self.sector = classify_sector(self.box)
+            self.sector = classify_sector(self.box, current_sector=self.sector)
         if self.miss_streak >= max_age:
             self.state = TrackState.DELETED
         else:

@@ -1,0 +1,234 @@
+{
+  "model_name": "nepali_sign_language_36",
+  "architecture": "TrinetraNSLNet",
+  "dataset": "Birat Poudel Nepali Sign Language Character Dataset",
+  "total_classes": 36,
+  "total_images_trained": 1440,
+  "classes": [
+    {
+      "id": 0,
+      "char": "क",
+      "rom": "ka",
+      "name": "Ka"
+    },
+    {
+      "id": 1,
+      "char": "ख",
+      "rom": "kha",
+      "name": "Kha"
+    },
+    {
+      "id": 2,
+      "char": "ग",
+      "rom": "ga",
+      "name": "Ga"
+    },
+    {
+      "id": 3,
+      "char": "घ",
+      "rom": "gha",
+      "name": "Gha"
+    },
+    {
+      "id": 4,
+      "char": "ङ",
+      "rom": "nga",
+      "name": "Nga"
+    },
+    {
+      "id": 5,
+      "char": "च",
+      "rom": "cha",
+      "name": "Cha"
+    },
+    {
+      "id": 6,
+      "char": "छ",
+      "rom": "chha",
+      "name": "Chha"
+    },
+    {
+      "id": 7,
+      "char": "ज",
+      "rom": "ja",
+      "name": "Ja"
+    },
+    {
+      "id": 8,
+      "char": "झ",
+      "rom": "jha",
+      "name": "Jha"
+    },
+    {
+      "id": 9,
+      "char": "ञ",
+      "rom": "yna",
+      "name": "Yna"
+    },
+    {
+      "id": 10,
+      "char": "ट",
+      "rom": "ta1",
+      "name": "Ta (Retroflex)"
+    },
+    {
+      "id": 11,
+      "char": "ठ",
+      "rom": "tha1",
+      "name": "Tha (Retroflex)"
+    },
+    {
+      "id": 12,
+      "char": "ड",
+      "rom": "da1",
+      "name": "Da (Retroflex)"
+    },
+    {
+      "id": 13,
+      "char": "ढ",
+      "rom": "dha1",
+      "name": "Dha (Retroflex)"
+    },
+    {
+      "id": 14,
+      "char": "ण",
+      "rom": "na1",
+      "name": "Na (Retroflex)"
+    },
+    {
+      "id": 15,
+      "char": "त",
+      "rom": "ta2",
+      "name": "Ta (Dental)"
+    },
+    {
+      "id": 16,
+      "char": "थ",
+      "rom": "tha2",
+      "name": "Tha (Dental)"
+    },
+    {
+      "id": 17,
+      "char": "द",
+      "rom": "da2",
+      "name": "Da (Dental)"
+    },
+    {
+      "id": 18,
+      "char": "ध",
+      "rom": "dha2",
+      "name": "Dha (Dental)"
+    },
+    {
+      "id": 19,
+      "char": "न",
+      "rom": "na2",
+      "name": "Na (Dental)"
+    },
+    {
+      "id": 20,
+      "char": "प",
+      "rom": "pa",
+      "name": "Pa"
+    },
+    {
+      "id": 21,
+      "char": "फ",
+      "rom": "pha",
+      "name": "Pha"
+    },
+    {
+      "id": 22,
+      "char": "ब",
+      "rom": "ba",
+      "name": "Ba"
+    },
+    {
+      "id": 23,
+      "char": "भ",
+      "rom": "bha",
+      "name": "Bha"
+    },
+    {
+      "id": 24,
+      "char": "म",
+      "rom": "ma",
+      "name": "Ma"
+    },
+    {
+      "id": 25,
+      "char": "य",
+      "rom": "ya",
+      "name": "Ya"
+    },
+    {
+      "id": 26,
+      "char": "र",
+      "rom": "ra",
+      "name": "Ra"
+    },
+    {
+      "id": 27,
+      "char": "ल",
+      "rom": "la",
+      "name": "La"
+    },
+    {
+      "id": 28,
+      "char": "व",
+      "rom": "wa",
+      "name": "Wa"
+    },
+    {
+      "id": 29,
+      "char": "श",
+      "rom": "sha1",
+      "name": "Sha (Palatal)"
+    },
+    {
+      "id": 30,
+      "char": "ष",
+      "rom": "sha2",
+      "name": "Sha (Retroflex)"
+    },
+    {
+      "id": 31,
+      "char": "स",
+      "rom": "sa",
+      "name": "Sa"
+    },
+    {
+      "id": 32,
+      "char": "ह",
+      "rom": "ha",
+      "name": "Ha"
+    },
+    {
+      "id": 33,
+      "char": "क्ष",
+      "rom": "kshya",
+      "name": "Kshya"
+    },
+    {
+      "id": 34,
+      "char": "त्र",
+      "rom": "tra",
+      "name": "Tra"
+    },
+    {
+      "id": 35,
+      "char": "ज्ञ",
+      "rom": "gyan",
+      "name": "Gyana"
+    }
+  ],
+  "input_shape": [
+    1,
+    3,
+    160,
+    160
+  ],
+  "val_accuracy": 0.2454,
+  "exported_at_utc": 1794215938.793751,
+  "framework": "PyTorch -> ONNX"
+}

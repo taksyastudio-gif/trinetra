@@ -541,10 +541,11 @@ class MJPEGStreamCameraAdapter(CameraAdapter):
     after explicit camera start, and decoded frames are never written to disk.
     """
 
-    def __init__(self, stream_url: str, timeout_seconds: float = 4.0, max_frame_bytes: int = 2_000_000):
+    def __init__(self, stream_url: str, timeout_seconds: float = 4.0, max_frame_bytes: int = 2_000_000, auth_token: Optional[str] = None):
         if not stream_url.startswith(("http://", "https://")):
             raise ValueError("MJPEG stream URL must use http:// or https://.")
         self.stream_url = stream_url
+        self.auth_token = auth_token or os.environ.get("TRINETRA_STREAM_TOKEN")
         self.timeout_seconds = max(0.5, timeout_seconds)
         self.max_frame_bytes = max_frame_bytes
         self._response: Any = None
@@ -563,7 +564,17 @@ class MJPEGStreamCameraAdapter(CameraAdapter):
         self.max_reconnect_attempts = 5
 
     def _open(self) -> None:
-        request = Request(self.stream_url, headers={"User-Agent": "Trinetra/1.0", "Accept": "multipart/x-mixed-replace,image/jpeg"})
+        headers = {
+            "User-Agent": "Trinetra/1.0",
+            "Accept": "multipart/x-mixed-replace,image/jpeg",
+        }
+        url = self.stream_url
+        if self.auth_token:
+            headers["X-Trinetra-Token"] = self.auth_token
+            sep = "&" if "?" in url else "?"
+            if "token=" not in url:
+                url = f"{url}{sep}token={self.auth_token}"
+        request = Request(url, headers=headers)
         self._response = urlopen(request, timeout=self.timeout_seconds)
         self._connection_state = CameraConnectionState.CONNECTED
         self._last_error = None
@@ -625,27 +636,32 @@ class MJPEGStreamCameraAdapter(CameraAdapter):
             try:
                 deadline = time.monotonic() + self.timeout_seconds
                 while time.monotonic() < deadline:
-                    start = self._buffer.find(b"\xff\xd8")
-                    end = self._buffer.find(b"\xff\xd9", start + 2) if start >= 0 else -1
-                    if start >= 0 and end >= 0:
-                        jpeg = bytes(self._buffer[start:end + 2])
-                        del self._buffer[:end + 2]
-                        if len(jpeg) > self.max_frame_bytes:
-                            raise FrameCaptureError("MJPEG frame exceeded configured size limit.")
-                        # Validate JPEG data before making it visible to models.
-                        try:
-                            import cv2
-                            import numpy as np
-                            image = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
-                            if image is None:
-                                raise FrameCaptureError("MJPEG stream produced an invalid JPEG frame.")
-                            height, width = image.shape[:2]
-                        except ImportError:
-                            raise FrameCaptureError("OpenCV is required to validate MJPEG frames.")
-                        self._frame_seq += 1
-                        self._last_frame_at = time.time()
-                        return FramePacket(self._frame_seq, self._last_frame_at, jpeg, width, height,
-                                           "mjpeg:" + self.stream_url, self._dropped_frames, self._session_id)
+                    last_end = self._buffer.rfind(b"\xff\xd9")
+                    if last_end >= 0:
+                        last_start = self._buffer.rfind(b"\xff\xd8", 0, last_end)
+                        if last_start >= 0:
+                            # Drop any older frames that arrived before this newest one to prevent latency drift
+                            earlier_frames = self._buffer[:last_start].count(b"\xff\xd9")
+                            if earlier_frames > 0:
+                                self._dropped_frames += earlier_frames
+                            jpeg = bytes(self._buffer[last_start:last_end + 2])
+                            del self._buffer[:last_end + 2]
+                            if len(jpeg) > self.max_frame_bytes:
+                                raise FrameCaptureError("MJPEG frame exceeded configured size limit.")
+                            # Validate JPEG data before making it visible to models.
+                            try:
+                                import cv2
+                                import numpy as np
+                                image = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
+                                if image is None:
+                                    raise FrameCaptureError("MJPEG stream produced an invalid JPEG frame.")
+                                height, width = image.shape[:2]
+                            except ImportError:
+                                raise FrameCaptureError("OpenCV is required to validate MJPEG frames.")
+                            self._frame_seq += 1
+                            self._last_frame_at = time.time()
+                            return FramePacket(self._frame_seq, self._last_frame_at, jpeg, width, height,
+                                               "mjpeg:" + self.stream_url, self._dropped_frames, self._session_id)
                     chunk = self._response.read(8192) if self._response is not None else b""
                     if not chunk:
                         raise OSError("MJPEG stream ended")

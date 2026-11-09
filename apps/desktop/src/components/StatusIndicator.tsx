@@ -7,6 +7,7 @@ interface StatusIndicatorProps {
   errorMessage: string | null;
   framesCaptured: number;
   perceptionHealth?: PerceptionHealthTelemetry | null;
+  wearableActive?: boolean;
 }
 
 export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
@@ -15,6 +16,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
   errorMessage,
   framesCaptured,
   perceptionHealth,
+  wearableActive = false,
 }) => {
   return (
     <section
@@ -87,6 +89,20 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
           <span className="status-disclaimer" style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "2px" }}>
             Diagnostics only — not safety certified
           </span>
+        </div>
+
+        {/* Wearable Hardware Rig Card */}
+        <div className="status-card" role="status" aria-live="polite">
+          <span className="status-label">Wearable Rig:</span>
+          <div className="status-value-wrapper">
+            <span
+              className={`status-dot ${wearableActive ? "status-dot-active" : "status-dot-stopped"}`}
+              aria-hidden="true"
+            />
+            <span className="status-text">
+              {wearableActive ? "Smart Glasses Connected" : "Ready (ESP32-CAM / Cane / Web)"}
+            </span>
+          </div>
         </div>
       </div>
 

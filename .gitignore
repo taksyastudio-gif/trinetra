@@ -90,7 +90,15 @@ datasets/ocr/processed/
 datasets/ocr/annotations/
 datasets/ocr/splits/
 datasets/ocr/metadata/
+datasets/nepali_sign_language/
+datasets/vehicles/
 services/vision-engine/models/currency/
+
+# Track lightweight ONNX production models and metadata
+!services/vision-engine/models/signs/v1/*.onnx
+!services/vision-engine/models/signs/v1/*.json
+!services/vision-engine/models/vehicles/v1/*.onnx
+!services/vision-engine/models/vehicles/v1/*.json
 
 # Local POC, experimental tests, and binary runtimes
 test_piper_poc/

@@ -20,6 +20,11 @@ import {
   AssistiveResult,
   SpeechTranscribeResponse,
   OfflineSttStatusResponse,
+  BusRouteMatchResponse,
+  QRPaymentResponse,
+  CultureDateResponse,
+  WearableStatusResponse,
+  DeviceHealthResponse,
 } from "../types/api";
 
 const BASE_URL =
@@ -337,6 +342,17 @@ export const cameraApi = {
     return requestJson<AssistiveResult>("/api/currency/identify", { method: "POST", body: JSON.stringify({ speak: true }) });
   },
 
+  async getAutoCurrencyMode(): Promise<{ enabled: boolean; model_ready: boolean }> {
+    return requestJson<{ enabled: boolean; model_ready: boolean }>("/api/currency/auto-mode");
+  },
+
+  async setAutoCurrencyMode(enabled: boolean): Promise<{ enabled: boolean }> {
+    return requestJson<{ enabled: boolean }>("/api/currency/auto-mode", {
+      method: "POST",
+      body: JSON.stringify({ enabled }),
+    });
+  },
+
   async readText(): Promise<AssistiveResult> {
     return requestJson<AssistiveResult>("/api/ocr/read", { method: "POST", body: JSON.stringify({ speak: true }) });
   },
@@ -465,6 +481,74 @@ export const cameraApi = {
     } catch {
       return null;
     }
+  },
+
+  /**
+   * Matches Kathmandu public transit bus route and number from camera frame or text.
+   */
+  async identifyBusRoute(text?: string, speak: boolean = true): Promise<BusRouteMatchResponse> {
+    return requestJson<BusRouteMatchResponse>("/api/ocr/bus-route", {
+      method: "POST",
+      body: JSON.stringify({ text: text || null, speak }),
+    });
+  },
+
+  /**
+   * Scans camera frame for Fonepay, eSewa, Khalti, or NepalQR retail standee codes.
+   */
+  async identifyQrPayment(speak: boolean = true): Promise<QRPaymentResponse> {
+    return requestJson<QRPaymentResponse>("/api/qr/identify", {
+      method: "POST",
+      body: JSON.stringify({ speak }),
+    });
+  },
+
+  /**
+   * Retrieves current Bikram Sambat (BS) date, day of week, and active festival.
+   */
+  async getCultureDate(): Promise<CultureDateResponse> {
+    return requestJson<CultureDateResponse>("/api/culture/date");
+  },
+
+  /**
+   * Retrieves status of connected wearable hardware (ESP32-CAM smart glasses / cane).
+   */
+  async getWearableStatus(): Promise<WearableStatusResponse> {
+    return requestJson<WearableStatusResponse>("/api/wearable/status");
+  },
+
+  /**
+   * Triggers directional tactile vibration pulse to wearable frame.
+   */
+  async triggerWearableHaptic(location: "left" | "right" | "dual" = "dual", pattern: string = "urgent_pulse"): Promise<{ status: string }> {
+    return requestJson<{ status: string }>("/api/wearable/haptic", {
+      method: "POST",
+      body: JSON.stringify({ location, pattern }),
+    });
+  },
+
+  /**
+   * Gets the active speech synthesis rate factor.
+   */
+  async getSpeechRate(): Promise<{ rate: number }> {
+    return requestJson<{ rate: number }>("/api/speech/rate");
+  },
+
+  /**
+   * Sets the speech synthesis rate factor [0.5, 2.5].
+   */
+  async setSpeechRate(rate: number): Promise<{ status: string; rate: number }> {
+    return requestJson<{ status: string; rate: number }>("/api/speech/rate", {
+      method: "POST",
+      body: JSON.stringify({ rate }),
+    });
+  },
+
+  /**
+   * Retrieves battery, thermal, and performance tier health report.
+   */
+  async getDeviceHealth(): Promise<DeviceHealthResponse> {
+    return requestJson<DeviceHealthResponse>("/api/device/health");
   },
 };
 

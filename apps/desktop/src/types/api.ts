@@ -193,3 +193,54 @@ export interface OfflineSttStatusResponse {
   offline: boolean;
   supported_commands: string[];
 }
+
+export interface BusRouteMatchResponse {
+  matched: boolean;
+  destination: string | null;
+  operator: string | null;
+  route_number: string | null;
+  spoken_phrase_ne: string;
+  confidence: number;
+  raw_text: string;
+}
+
+export interface QRPaymentResponse {
+  detected: boolean;
+  scheme: string | null;
+  merchant_name: string | null;
+  merchant_id: string | null;
+  spoken_phrase_ne: string;
+  raw_payload: string;
+  confidence: number;
+}
+
+export interface CultureDateResponse {
+  year_bs: number;
+  month_bs: number;
+  month_name_ne: string;
+  day_bs: number;
+  weekday_ne: string;
+  tithi_ne?: string;
+  festival_ne?: string;
+  formatted_bs: string;
+  spoken_ne: string;
+}
+
+export interface WearableStatusResponse {
+  device_model: string;
+  firmware_version: string;
+  has_camera: boolean;
+  has_haptics: boolean;
+  is_active: boolean;
+  connection_quality: string;
+  stream_url?: string;
+}
+
+export interface DeviceHealthResponse {
+  battery_pct: number | null;
+  is_charging: boolean | null;
+  temp_c: number | null;
+  thermal_throttling: boolean;
+  active_tier: string;
+  recommendations: string[];
+}

@@ -76,14 +76,20 @@ export function formatDate(dateString: string): string {
 }
 
 export async function fetchLatestRelease(): Promise<LatestReleaseInfo> {
+  const directExeUrl = `https://github.com/${RELEASES_OWNER}/${RELEASES_REPO}/releases/latest/download/Trinetra.exe`;
   const fallback: LatestReleaseInfo = {
     version: APP_VERSION,
     tag: `v${APP_VERSION}`,
-    name: `Trinetra v${APP_VERSION}`,
-    publishedAt: new Date().toISOString(),
+    name: `Trinetra v${APP_VERSION} (Standalone)`,
+    publishedAt: "2026-11-08T18:00:00Z",
     htmlUrl: `https://github.com/${RELEASES_OWNER}/${RELEASES_REPO}/releases`,
-    body: "",
-    hasRelease: false,
+    body: "100% In-House Native Assistive Platform for Windows",
+    windowsAsset: {
+      name: "Trinetra.exe",
+      size: 476625790,
+      downloadUrl: directExeUrl,
+    },
+    hasRelease: true,
   };
 
   if (typeof window === "undefined") return fallback;

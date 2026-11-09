@@ -13,6 +13,7 @@ from trinetra_core.types import (
     AutonomyLevel,
     FrameMetadata,
 )
+from trinetra_core.client import TrinetraClient
 
 __all__ = [
     "__version__",
@@ -22,4 +23,5 @@ __all__ = [
     "DeviceType",
     "AutonomyLevel",
     "FrameMetadata",
+    "TrinetraClient",
 ]
