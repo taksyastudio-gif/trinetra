@@ -1,0 +1,56 @@
+name: SignPath Code Signing (Open Source)
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_name:
+        description: 'Name of artifact to sign (e.g., Trinetra.exe or installer zip)'
+        required: false
+        default: 'Trinetra-Windows-Installer.zip'
+
+jobs:
+  sign:
+    name: Sign Windows Executable with SignPath Foundation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Built Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: unsigned-binary
+          path: ./dist-to-sign
+        continue-on-error: true
+
+      # Upload to GitHub Actions artifact storage (SignPath requires verification through GitHub Actions artifact storage)
+      - name: Prepare Artifact for SignPath
+        id: upload-unsigned-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trinetra-unsigned
+          path: ./dist-to-sign
+
+      # Submit signing request to SignPath Foundation (100% Free for Open Source, No Credit Card)
+      - name: Submit Signing Request to SignPath
+        uses: signpath/github-action-submit-signing-request@v3
+        if: env.SIGNPATH_API_TOKEN != ''
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: 'trinetra'
+          signing-policy-slug: 'release-signing'
+          github-artifact-id: ${{ steps.upload-unsigned-artifact.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: './signed-binaries'
+
+      - name: Upload Signed Binaries
+        uses: actions/upload-artifact@v4
+        if: env.SIGNPATH_API_TOKEN != ''
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+        with:
+          name: trinetra-windows-signed
+          path: ./signed-binaries
