@@ -6,10 +6,11 @@
 [![Version](https://img.shields.io/badge/Release-v0.2.0-blue.svg?style=for-the-badge)](https://github.com/taksyastudio-gif/trinetra/releases)
 [![Tests Passing](https://img.shields.io/badge/Automated%20Tests-320%20Passed-success?style=for-the-badge)](services/vision-engine/tests)
 [![100% Offline](https://img.shields.io/badge/Cloud%20Dependencies-0%20(100%25%20Offline)-emerald?style=for-the-badge)](#)
-[![Accessibility](https://img.shields.io/badge/WCAG%202.1-AAA%20Compliant-purple?style=for-the-badge)](#)
+[![Accessibility](https://img.shields.io/badge/WCAG%202.1-AAA%20Compliant-purple?style=for-the-badge)](https://github.com/taksyastudio-gif/trinetra)
 [![License](https://img.shields.io/badge/License-MIT-amber.svg?style=for-the-badge)](LICENSE)
+[![Signed by SignPath.io](https://img.shields.io/badge/Code%20Signing-SignPath.org-blue?style=for-the-badge)](https://signpath.org)
 
-[**🌐 Official Website & Live Portal**](https://taksyastudio-gif.github.io/trinetra) • [**⬇️ Download Windows (.exe)**](https://github.com/taksyastudio-gif/trinetra/releases/latest/download/Trinetra.exe) • [**📖 Integration Guide**](examples/README.md) • [**📜 Dataset Registry**](datasets/SOURCES.md)
+[**🌐 Official Website & Live Portal**](https://taksyastudio-gif.github.io/trinetra) • [**⬇️ Download Windows (.exe)**](https://github.com/taksyastudio-gif/trinetra/releases) • [**🔒 Privacy Policy**](PRIVACY.md) • [**📖 Integration Guide**](examples/README.md) • [**📜 Dataset Registry**](datasets/SOURCES.md)
 
 </div>
 
@@ -116,8 +117,9 @@ Unlike rigid literal dictionary translators, Trinetra uses warm, polite, and aut
 ## 🚀 Quickstart & One-Click Launch
 
 ### Option 1: Standalone Direct Executable (No Python Required)
-1. Download **[`Trinetra.exe`](https://github.com/taksyastudio-gif/trinetra/releases/latest/download/Trinetra.exe)** (or download the full standalone ZIP package from our [Releases](https://github.com/taksyastudio-gif/trinetra/releases)).
-2. Double-click `Trinetra.exe` — the offline vision engine, accessible UI, and voice synthesizer boot up automatically.
+1. Download **[`Trinetra.exe`](https://github.com/taksyastudio-gif/trinetra/releases)** from our official releases.
+2. Free code signing is provided by the [SignPath Foundation](https://signpath.org).
+3. Double-click `Trinetra.exe` — the offline vision engine, accessible UI, and voice synthesizer boot up automatically.
 
 ### Option 2: Run From Source (Developers)
 ```powershell
