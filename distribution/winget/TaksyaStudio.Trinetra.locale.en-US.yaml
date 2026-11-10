@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+PackageIdentifier: TaksyaStudio.Trinetra
+PackageVersion: 0.2.0
+PackageLocale: en-US
+Publisher: Taksya Studio
+PublisherUrl: https://github.com/taksyastudio-gif
+PublisherSupportUrl: https://github.com/taksyastudio-gif/trinetra/issues
+Author: Taksya Studio
+PackageName: Trinetra
+PackageUrl: https://taksyastudio-gif.github.io/trinetra
+License: MIT
+LicenseUrl: https://github.com/taksyastudio-gif/trinetra/blob/main/LICENSE
+Copyright: Copyright (c) 2026 Taksya Studio and Trinetra Contributors
+ShortDescription: 100% In-house, offline assistive vision and navigation platform for blind and visually impaired individuals.
+Description: Trinetra is an open-source, local-first assistive computer vision suite engineered for blind, visually impaired, deaf, and non-verbal users. Features include offline Nepali currency recognition, spatial audio radar, ground hazard detection, and Nepali sign language translation.
+Moniker: trinetra
+Tags:
+  - accessibility
+  - assistive-technology
+  - computer-vision
+  - blind
+  - sign-language
+  - nepali-currency
+  - offline
+ReleaseNotesUrl: https://github.com/taksyastudio-gif/trinetra/releases/tag/v0.2.0
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

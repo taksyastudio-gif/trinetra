@@ -3,6 +3,10 @@ name = "trinetra-desktop"
 version = "0.2.0"
 description = "Trinetra Assistive Vision Desktop Application"
 edition = "2021"
+authors = ["Taksya Studio <dev@trinetra.ai>"]
+license = "MIT"
+repository = "https://github.com/taksyastudio-gif/trinetra"
+homepage = "https://taksyastudio-gif.github.io/trinetra"
 
 [lib]
 name = "trinetra_desktop_lib"

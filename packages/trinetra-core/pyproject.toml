@@ -8,7 +8,7 @@ version = "0.2.0"
 description = "TRINETRA v2 Platform-Agnostic Core & Hardware Abstraction Layer"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "Apache-2.0"}
+license = {text = "MIT"}
 authors = [
     {name = "Trinetra Assistive Engineering Team", email = "dev@trinetra.ai"}
 ]

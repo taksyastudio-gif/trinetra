@@ -17,6 +17,8 @@ import {
   type DetectedOS,
   type LatestReleaseInfo,
 } from "./services/releases";
+import { DownloadShowcase } from "./components/DownloadShowcase";
+import { animateHeroEntrance } from "./utils/animations";
 
 type Language = "en" | "ne";
 type Theme = "dark" | "light";
@@ -49,7 +51,6 @@ export default function App() {
   const [release, setRelease] = useState<LatestReleaseInfo | null>(null);
   const [releaseLoading, setReleaseLoading] = useState(true);
   const [detectedOS] = useState<DetectedOS>(() => detectOS());
-  const [copiedSha, setCopiedSha] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [, startTransition] = useTransition();
@@ -96,6 +97,11 @@ export default function App() {
     };
   }, []);
 
+  // Anime.js hero stagger entrance animation
+  useEffect(() => {
+    animateHeroEntrance(".hero-content > *");
+  }, []);
+
   const toggleLanguage = () => {
     const nextLang: Language = lang === "en" ? "ne" : "en";
     startTransition(() => {
@@ -114,17 +120,6 @@ export default function App() {
     setAnnouncement(
       t.live.themeChanged.replace("{theme}", nextTheme)
     );
-  };
-
-  const handleCopyChecksum = async (sha: string) => {
-    try {
-      await navigator.clipboard.writeText(sha);
-      setCopiedSha(sha);
-      setAnnouncement(t.live.checksumCopied);
-      setTimeout(() => setCopiedSha(null), 3000);
-    } catch {
-      // Fallback
-    }
   };
 
   // Primary OS download button logic - direct file download without opening GitHub
@@ -384,208 +379,16 @@ export default function App() {
               <p className="section-subtitle">{t.downloads.subtitle}</p>
             </div>
 
-            <div className="cards-grid">
-              {/* Windows Card */}
-              <div className="card">
-                <div className="card-icon" aria-hidden="true">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                    <line x1="8" y1="21" x2="16" y2="21" />
-                    <line x1="12" y1="17" x2="12" y2="21" />
-                  </svg>
-                </div>
-                <h3 className="card-title">{t.downloads.windows.title}</h3>
-                <p className="card-desc">{t.downloads.windows.subtitle}</p>
+            <DownloadShowcase
+              detectedOS={detectedOS}
+              release={release}
+              releaseLoading={releaseLoading}
+              lang={lang}
+              t={t}
+              onAnnounce={setAnnouncement}
+            />
 
-                <div className="card-meta">
-                  <div className="meta-row">
-                    <span className="meta-label">
-                      {t.downloads.versionLabel}
-                    </span>
-                    <span className="meta-value">
-                      v{release?.version || APP_VERSION}
-                    </span>
-                  </div>
-                  <div className="meta-row">
-                    <span className="meta-label">{t.downloads.dateLabel}</span>
-                    <span className="meta-value">
-                      {release?.publishedAt
-                        ? formatDate(release.publishedAt)
-                        : "Nov 2026"}
-                    </span>
-                  </div>
-                  <div className="meta-row">
-                    <span className="meta-label">{t.downloads.sizeLabel}</span>
-                    <span className="meta-value">
-                      {release?.windowsAsset?.size
-                        ? formatBytes(release.windowsAsset.size)
-                        : "~120 MB"}
-                    </span>
-                  </div>
-                  {release?.windowsAsset?.checksum && (
-                    <div className="checksum-box">
-                      <span className="checksum-hash" title={release.windowsAsset.checksum}>
-                        {release.windowsAsset.checksum.slice(0, 16)}...
-                      </span>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{ minHeight: "32px", padding: "0.2rem 0.6rem", fontSize: "0.75rem" }}
-                        onClick={() =>
-                          handleCopyChecksum(release.windowsAsset!.checksum!)
-                        }
-                      >
-                        {copiedSha === release.windowsAsset.checksum
-                          ? t.downloads.copiedChecksum
-                          : t.downloads.copyChecksum}
-                      </button>
-                    </div>
-                  )}
-                </div>
 
-                {release?.windowsAsset?.downloadUrl ? (
-                  <a
-                    href={release.windowsAsset.downloadUrl}
-                    className="btn btn-primary"
-                    download
-                  >
-                    {t.downloads.windows.downloadButton}
-                  </a>
-                ) : (
-                  <a
-                    href={`${GITHUB_REPO_URL}#readme`}
-                    className="btn btn-secondary"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {t.downloads.windows.sourceButton}
-                  </a>
-                )}
-              </div>
-
-              {/* Android Card */}
-              <div className="card">
-                <div className="card-icon" aria-hidden="true">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-                    <line x1="12" y1="18" x2="12.01" y2="18" />
-                  </svg>
-                </div>
-                <h3 className="card-title">{t.downloads.android.title}</h3>
-                <p className="card-desc">{t.downloads.android.subtitle}</p>
-
-                <div className="card-meta">
-                  <strong style={{ marginBottom: "0.25rem", color: "var(--text-primary)" }}>
-                    {t.downloads.android.guideTitle}
-                  </strong>
-                  <p style={{ margin: "0.2rem 0" }}>{t.downloads.android.step1}</p>
-                  <p style={{ margin: "0.2rem 0" }}>{t.downloads.android.step2}</p>
-                  <p style={{ margin: "0.2rem 0" }}>{t.downloads.android.step3}</p>
-                </div>
-
-                {release?.androidAsset?.downloadUrl ? (
-                  <a
-                    href={release.androidAsset.downloadUrl}
-                    className="btn btn-primary"
-                    download
-                  >
-                    Download APK ({formatBytes(release.androidAsset.size)})
-                  </a>
-                ) : (
-                  <p style={{ fontSize: "0.8125rem", color: "var(--text-tertiary)" }}>
-                    {t.downloads.android.apkNote}
-                  </p>
-                )}
-              </div>
-
-              {/* iOS Card */}
-              <div className="card">
-                <div className="card-icon" aria-hidden="true">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z" />
-                    <path d="M12 6v6l4 2" />
-                  </svg>
-                </div>
-                <h3 className="card-title">{t.downloads.ios.title}</h3>
-                <p className="card-desc">{t.downloads.ios.subtitle}</p>
-
-                <div className="card-meta">
-                  <strong style={{ marginBottom: "0.25rem", color: "var(--text-primary)" }}>
-                    {t.downloads.ios.guideTitle}
-                  </strong>
-                  <p style={{ margin: "0.2rem 0" }}>{t.downloads.ios.step1}</p>
-                  <p style={{ margin: "0.2rem 0" }}>{t.downloads.ios.step2}</p>
-                  <p style={{ margin: "0.2rem 0" }}>{t.downloads.ios.step3}</p>
-                </div>
-              </div>
-
-              {/* ESP32-CAM Firmware Card */}
-              <div className="card">
-                <div className="card-icon" aria-hidden="true">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                    <circle cx="12" cy="13" r="3" />
-                  </svg>
-                </div>
-                <h3 className="card-title">{t.downloads.firmware.title}</h3>
-                <p className="card-desc">{t.downloads.firmware.subtitle}</p>
-
-                <div className="card-meta">
-                  <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-                    {t.downloads.firmware.instructions}
-                  </p>
-                </div>
-
-                <a
-                  href={FIRMWARE_SOURCE_URL}
-                  className="btn btn-primary"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {t.downloads.firmware.actionButton}
-                </a>
-              </div>
-            </div>
           </div>
         </section>
 

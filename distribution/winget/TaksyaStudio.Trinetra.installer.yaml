@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+PackageIdentifier: TaksyaStudio.Trinetra
+PackageVersion: 0.2.0
+InstallerLocale: en-US
+MinimumOSVersion: 10.0.0.0
+InstallerType: zip
+NestedInstallerType: portable
+NestedInstallerFiles:
+  - RelativeFilePath: Trinetra/Trinetra.exe
+    PortableCommandAlias: trinetra
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/taksyastudio-gif/trinetra/releases/download/v0.2.0/Trinetra-v0.2.0-Standalone-Windows.zip
+    InstallerSha256: A2579362A3A5FD3B032F0002229D65831E81A1257E6FE0457CACD57269BECA43
+    UpgradeBehavior: install
+ManifestType: installer
+ManifestVersion: 1.6.0

@@ -13,6 +13,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   release:
@@ -78,3 +80,11 @@ jobs:
           updaterJsonKeepUniversal: true
           owner: ${{ vars.RELEASES_REPO_OWNER || github.repository_owner }}
           repo: ${{ vars.RELEASES_REPO_NAME || 'trinetra-releases' }}
+
+      - name: Generate GitHub Artifact Attestations (Build Provenance)
+        uses: actions/attest-build-provenance@v2
+        continue-on-error: true
+        with:
+          subject-path: |
+            apps/desktop/src-tauri/target/release/bundle/**/*.*
+            services/vision-engine/dist/**/*.*

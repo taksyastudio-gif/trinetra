@@ -89,6 +89,11 @@ export async function fetchLatestRelease(): Promise<LatestReleaseInfo> {
       size: 476625790,
       downloadUrl: directExeUrl,
     },
+    androidAsset: {
+      name: "Trinetra-v0.2.0-Android.apk",
+      size: 29360128,
+      downloadUrl: `https://github.com/${RELEASES_OWNER}/${RELEASES_REPO}/releases/latest/download/Trinetra-v0.2.0-Android.apk`,
+    },
     hasRelease: true,
   };
 

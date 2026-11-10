@@ -8,7 +8,8 @@
 [![100% Offline](https://img.shields.io/badge/Cloud%20Dependencies-0%20(100%25%20Offline)-emerald?style=for-the-badge)](#)
 [![Accessibility](https://img.shields.io/badge/WCAG%202.1-AAA%20Compliant-purple?style=for-the-badge)](https://github.com/taksyastudio-gif/trinetra)
 [![License](https://img.shields.io/badge/License-MIT-amber.svg?style=for-the-badge)](LICENSE)
-[![Signed by SignPath.io](https://img.shields.io/badge/Code%20Signing-SignPath.org-blue?style=for-the-badge)](https://signpath.org)
+[![Windows winget](https://img.shields.io/badge/Windows-winget%20package-0078D4?style=for-the-badge&logo=windows)](distribution/winget)
+[![Build Provenance](https://img.shields.io/badge/SLSA-GitHub%20Attested-success?style=for-the-badge&logo=github)](https://github.com/taksyastudio-gif/trinetra/attestations)
 
 [**🌐 Official Website & Live Portal**](https://taksyastudio-gif.github.io/trinetra) • [**⬇️ Download Windows (.exe)**](https://github.com/taksyastudio-gif/trinetra/releases) • [**🔒 Privacy Policy**](PRIVACY.md) • [**📖 Integration Guide**](examples/README.md) • [**📜 Dataset Registry**](datasets/SOURCES.md)
 
@@ -116,12 +117,20 @@ Unlike rigid literal dictionary translators, Trinetra uses warm, polite, and aut
 
 ## 🚀 Quickstart & One-Click Launch
 
-### Option 1: Standalone Direct Executable (No Python Required)
-1. Download **[`Trinetra.exe`](https://github.com/taksyastudio-gif/trinetra/releases)** from our official releases.
-2. Free code signing is provided by the [SignPath Foundation](https://signpath.org).
-3. Double-click `Trinetra.exe` — the offline vision engine, accessible UI, and voice synthesizer boot up automatically.
+### Option 1: Install via Windows Package Manager (winget)
+```powershell
+winget install TaksyaStudio.Trinetra
+```
 
-### Option 2: Run From Source (Developers)
+### Option 2: Standalone Direct Download (No Python Required)
+1. Download **[`Trinetra-v0.2.0-Standalone-Windows.zip`](https://github.com/taksyastudio-gif/trinetra/releases)**.
+2. Verify integrity with `SHA256SUMS.txt` or cryptographically via GitHub Attestation:
+   ```powershell
+   gh attestation verify Trinetra-v0.2.0-Standalone-Windows.zip --owner taksyastudio-gif
+   ```
+3. Extract and launch `Trinetra.exe` — the offline vision engine, accessible UI, and voice synthesizer boot up automatically. *(If Windows SmartScreen appears on first run, click **More info** → **Run anyway**)*.
+
+### Option 3: Run From Source (Developers)
 ```powershell
 # 1. Clone repository
 git clone https://github.com/taksyastudio-gif/trinetra.git
