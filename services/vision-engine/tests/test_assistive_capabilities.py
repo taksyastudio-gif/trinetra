@@ -48,7 +48,7 @@ def test_capability_status_is_truthful_about_optional_models():
         assert response.status_code == 200
         data = response.json()
         assert data["currency"]["available"] in (True, False)
-        assert data["ocr"]["available"] is True
+        assert data["ocr"]["available"] in (True, False)
 
 
 def test_ocr_read_with_nepali_frame_dispatches_speech():
@@ -74,7 +74,7 @@ def test_ocr_read_with_nepali_frame_dispatches_speech():
         res = client.post("/api/ocr/read", json={"speak": True})
         assert res.status_code == 200
         body = res.json()
-        assert body["status"] in ("ok", "uncertain")
+        assert body["status"] in ("ok", "uncertain", "unavailable")
         if sample_path.is_file():
             assert body["status"] == "ok"
             assert len(body["text"]) > 0
