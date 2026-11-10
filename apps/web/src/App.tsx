@@ -150,16 +150,8 @@ export default function App() {
           size: formatBytes(release.androidAsset.size),
         };
       }
-      if (release?.windowsAsset?.downloadUrl) {
-        return {
-          label: "⬇️ Direct Download Windows Standalone Package",
-          url: release.windowsAsset.downloadUrl,
-          isDirectDownload: true,
-          size: formatBytes(release.windowsAsset.size),
-        };
-      }
       return {
-        label: `${t.downloads.android.title} (PWA)`,
+        label: `📱 ${lang === "ne" ? "मोबाइल वेब PWA चलाउनुहोस् (शून्य डाउनलोड)" : "Launch Mobile Web App (PWA)"}`,
         url: "#downloads",
         isDirectDownload: false,
         size: null,
@@ -167,16 +159,8 @@ export default function App() {
     }
 
     if (detectedOS === "iOS") {
-      if (release?.windowsAsset?.downloadUrl) {
-        return {
-          label: "⬇️ Direct Download Standalone Package",
-          url: release.windowsAsset.downloadUrl,
-          isDirectDownload: true,
-          size: formatBytes(release.windowsAsset.size),
-        };
-      }
       return {
-        label: `${t.downloads.ios.title} (PWA)`,
+        label: `📱 ${lang === "ne" ? "सफारीमा सीधै चलाउनुहोस् (VoiceOver Ready)" : "Launch Web App in Safari"}`,
         url: "#downloads",
         isDirectDownload: false,
         size: null,

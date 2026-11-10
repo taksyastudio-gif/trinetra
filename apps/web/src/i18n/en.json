@@ -120,7 +120,7 @@
   },
   "footer": {
     "disclaimer": "Notice: Trinetra is an open-source assistive tool, not a certified medical device. It does not replace a white cane, guide dog, or personal orientation and mobility training.",
-    "license": "Licensed under the Apache-2.0 License.",
+    "license": "Licensed under the MIT License.",
     "github": "Source Code on GitHub",
     "firmware": "Firmware Source",
     "releases": "Releases Repository",

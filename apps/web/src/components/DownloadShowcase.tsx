@@ -128,20 +128,19 @@ export function DownloadShowcase({
     setTimeout(() => setIsSimulating(false), 1200);
   };
 
-  // Pre-configured URLs
-  const apkDownloadUrl =
-    release?.androidAsset?.downloadUrl ||
-    "https://github.com/taksyastudio-gif/trinetra/releases/latest/download/Trinetra-v0.2.0-Android.apk";
+  // Pre-configured URLs & Availability
+  const hasAndroidApk = Boolean(release?.androidAsset?.downloadUrl);
+  const apkDownloadUrl = release?.androidAsset?.downloadUrl || "";
   const apkSize = release?.androidAsset?.size
     ? formatBytes(release.androidAsset.size)
-    : "28.0 MB";
+    : "";
 
   const windowsDownloadUrl =
     release?.windowsAsset?.downloadUrl ||
     "https://github.com/taksyastudio-gif/trinetra/releases/latest/download/Trinetra-v0.2.0-Setup.exe";
   const windowsSize = release?.windowsAsset?.size
     ? formatBytes(release.windowsAsset.size)
-    : "454.5 MB";
+    : "285.3 MB";
 
   return (
     <div className="download-hub-wrapper">
@@ -297,39 +296,74 @@ export function DownloadShowcase({
 
               {/* Action Buttons with 48px+ touch targets */}
               <div className="cta-action-group">
-                <a
-                  href={apkDownloadUrl}
-                  className="btn btn-primary btn-large download-action-btn"
-                  download
-                  onClick={(e) => animateButtonBounce(e.currentTarget)}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="22"
-                    height="22"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
+                {hasAndroidApk ? (
+                  <a
+                    href={apkDownloadUrl}
+                    className="btn btn-primary btn-large download-action-btn"
+                    download
+                    onClick={(e) => animateButtonBounce(e.currentTarget)}
                   >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  <div className="btn-text-block">
-                    <span className="btn-main-label">
-                      {t.downloads.downloadApk || "Download Android APK"}
-                    </span>
-                    <span className="btn-sub-label">
-                      v0.2.0 • {apkSize} • 100% Offline
-                    </span>
-                  </div>
-                </a>
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="22"
+                      height="22"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <div className="btn-text-block">
+                      <span className="btn-main-label">
+                        {t.downloads.downloadApk || "Download Android APK"}
+                      </span>
+                      <span className="btn-sub-label">
+                        v0.2.0 • {apkSize} • 100% Offline
+                      </span>
+                    </div>
+                  </a>
+                ) : (
+                  <a
+                    href="#how-it-works"
+                    className="btn btn-primary btn-large download-action-btn"
+                    onClick={(e) => {
+                      animateButtonBounce(e.currentTarget);
+                      triggerPhoneSimulation(e);
+                    }}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="22"
+                      height="22"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    <div className="btn-text-block">
+                      <span className="btn-main-label">
+                        {lang === "ne" ? "मोबाइल वेब एप चलाउनुहोस् (PWA)" : "Launch Mobile Web PWA"}
+                      </span>
+                      <span className="btn-sub-label">
+                        {lang === "ne" ? "शून्य इन्स्टल • मोबाइल ब्राउजरबाट सीधै चल्छ" : "Zero Install • Add to Home Screen"}
+                      </span>
+                    </div>
+                  </a>
+                )}
 
                 <a
-                  href="#how-it-works"
+                  href={RELEASES_PAGE_URL}
+                  target="_blank"
+                  rel="noreferrer"
                   className="btn btn-secondary btn-large"
                   onClick={(e) => animateButtonBounce(e.currentTarget)}
                 >
@@ -342,9 +376,9 @@ export function DownloadShowcase({
                     strokeWidth="2"
                     aria-hidden="true"
                   >
-                    <polygon points="5 3 19 12 5 21 5 3" />
+                    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
                   </svg>
-                  <span>{t.downloads.launchPwa || "Interactive Web PWA"}</span>
+                  <span>{t.downloads.viewAllReleases || "View Releases on GitHub"}</span>
                 </a>
               </div>
 
@@ -355,22 +389,22 @@ export function DownloadShowcase({
                   <li className="step-item">
                     <span className="step-num">1</span>
                     <div className="step-body">
-                      <strong>{lang === "ne" ? "APK डाउनलोड गर्नुहोस्" : "Download APK"}</strong>
-                      <p>{t.downloads.android.step1}</p>
+                      <strong>{lang === "ne" ? "क्रोम वा फायरफक्समा खोल्नुहोस्" : "Open in Chrome or Firefox"}</strong>
+                      <p>{lang === "ne" ? "आफ्नो एन्ड्रोइड फोनमा यो वेबपेज खोल्नुहोस्।" : "Visit this page directly from your Android phone browser."}</p>
                     </div>
                   </li>
                   <li className="step-item">
                     <span className="step-num">2</span>
                     <div className="step-body">
-                      <strong>{lang === "ne" ? "स्थापना अनुमति दिनुहोस्" : "Enable Install from Source"}</strong>
-                      <p>{t.downloads.android.step2}</p>
+                      <strong>{lang === "ne" ? "'Add to Home screen' थिच्नुहोस्" : "Tap 'Add to Home screen'"}</strong>
+                      <p>{lang === "ne" ? "ब्राउजरको तीन थोप्ला (⋮) मेनुबाट 'Add to Home screen' वा 'Install App' छान्नुहोस्।" : "From the browser menu (⋮), tap 'Add to Home screen' or 'Install app'."}</p>
                     </div>
                   </li>
                   <li className="step-item">
                     <span className="step-num">3</span>
                     <div className="step-body">
-                      <strong>{lang === "ne" ? "क्यामेरा र माइक अनुमति" : "Grant Sensory Permissions"}</strong>
-                      <p>{t.downloads.android.step3}</p>
+                      <strong>{lang === "ne" ? "क्यामेरा अनुमति दिनुहोस्" : "Grant Camera Access"}</strong>
+                      <p>{lang === "ne" ? "होमस्क्रिनबाट एप खोली स्थानीय १००% अफलाइन दृष्टि सहायता सुरु गर्नुहोस्।" : "Launch from your home screen and allow camera access for 100% on-device vision."}</p>
                     </div>
                   </li>
                 </ol>

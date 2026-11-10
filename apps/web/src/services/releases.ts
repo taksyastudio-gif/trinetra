@@ -76,7 +76,6 @@ export function formatDate(dateString: string): string {
 }
 
 export async function fetchLatestRelease(): Promise<LatestReleaseInfo> {
-  const directExeUrl = `https://github.com/${RELEASES_OWNER}/${RELEASES_REPO}/releases/latest/download/Trinetra.exe`;
   const fallback: LatestReleaseInfo = {
     version: APP_VERSION,
     tag: `v${APP_VERSION}`,
@@ -85,15 +84,11 @@ export async function fetchLatestRelease(): Promise<LatestReleaseInfo> {
     htmlUrl: `https://github.com/${RELEASES_OWNER}/${RELEASES_REPO}/releases`,
     body: "100% In-House Native Assistive Platform for Windows",
     windowsAsset: {
-      name: "Trinetra.exe",
-      size: 476625790,
-      downloadUrl: directExeUrl,
+      name: "Trinetra-v0.2.0-Setup.exe",
+      size: 299166327,
+      downloadUrl: `https://github.com/${RELEASES_OWNER}/${RELEASES_REPO}/releases/latest/download/Trinetra-v0.2.0-Setup.exe`,
     },
-    androidAsset: {
-      name: "Trinetra-v0.2.0-Android.apk",
-      size: 29360128,
-      downloadUrl: `https://github.com/${RELEASES_OWNER}/${RELEASES_REPO}/releases/latest/download/Trinetra-v0.2.0-Android.apk`,
-    },
+    androidAsset: undefined,
     hasRelease: true,
   };
 

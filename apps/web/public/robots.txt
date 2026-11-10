@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://trinetra.vercel.app/sitemap.xml
+Sitemap: https://taksyastudio-gif.github.io/trinetra/sitemap.xml
