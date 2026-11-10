@@ -43,6 +43,11 @@ from app.detection.engine import (
     PerceptionPipeline,
 )
 
+pytestmark = pytest.mark.skipif(
+    not is_piper_available(),
+    reason="Piper binary or Nepali voice model not available in CI environment (local runtime asset)",
+)
+
 
 def test_piper_paths_resolution():
     """Validates that production or fallback Piper assets are discovered."""

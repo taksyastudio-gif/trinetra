@@ -10,6 +10,7 @@ Validates:
 import os
 import sys
 import time
+from pathlib import Path
 import cv2
 import numpy as np
 import pytest
@@ -22,6 +23,12 @@ from app.audio.speaker import FakeSpeechBackend, SpeechPriority
 from app.detection.engine import PerceptionPipeline, FramePacket
 from app.detection.native_engine import NativeVisionEngine
 from app.main import create_app
+
+_currency_model_path = Path(__file__).resolve().parent.parent / "models" / "currency" / "v1" / "currency_classifier.onnx"
+pytestmark = pytest.mark.skipif(
+    not _currency_model_path.is_file(),
+    reason="Currency model ONNX asset not present in CI checkout",
+)
 
 
 def make_synthetic_note(denom: int) -> bytes:
