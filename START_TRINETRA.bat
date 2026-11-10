@@ -9,7 +9,14 @@ echo ====================================================================
 echo.
 echo [1/3] Starting Trinetra Vision Engine...
 set "PYTHONPATH=%~dp0services\vision-engine;%~dp0packages\trinetra-core"
-start /b "" python -m uvicorn app.main:app --app-dir "%~dp0services\vision-engine" --host 127.0.0.1 --port 8000
+set "MARKUPSAFE_NO_SPEEDUPS=1"
+set "WEBSOCKETS_NO_EXTENSIONS=1"
+if exist "%~dp0services\vision-engine\.venv\Scripts\python.exe" (
+    set "PYTHON_EXE=%~dp0services\vision-engine\.venv\Scripts\python.exe"
+) else (
+    set "PYTHON_EXE=python"
+)
+start /b "" "%PYTHON_EXE%" -m uvicorn app.main:app --app-dir "%~dp0services\vision-engine" --host 127.0.0.1 --port 8000
 
 echo [2/3] Starting UI Interface...
 start /b "" cmd /c "npm run dev --prefix apps/desktop"
