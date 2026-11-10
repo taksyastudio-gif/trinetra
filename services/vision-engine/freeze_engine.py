@@ -78,8 +78,17 @@ def build():
         shutil.copy2(output_exe, dest_gnu)
         shutil.copy2(output_exe, dest_msvc)
 
+        # Remove unvetted native C-extensions that trigger Windows Smart App Control (SAC)
+        for pattern in ["markupsafe/_speedups*.pyd", "websockets/speedups*.pyd"]:
+            for pyd_file in (output_dir / "_internal").glob(pattern):
+                try:
+                    pyd_file.unlink()
+                    print(f"Removed SAC trigger: {pyd_file.name}")
+                except Exception as e:
+                    print(f"Warning removing {pyd_file}: {e}")
+
         # Copy _internal directory
-        internal_src = output_dir / "_internal"
+        internal_src = output_dir / "_internal" 
         if internal_src.is_dir():
             internal_dest = TAURI_BIN_DIR / "_internal"
             if internal_dest.exists():

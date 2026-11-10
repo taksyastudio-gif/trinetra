@@ -10,7 +10,7 @@ homepage = "https://taksyastudio-gif.github.io/trinetra"
 
 [lib]
 name = "trinetra_desktop_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+crate-type = ["staticlib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

@@ -17,21 +17,24 @@ fn get_session_token(supervisor: State<'_, SharedSupervisor>) -> Result<String, 
 }
 
 fn resolve_base_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
+    // 1. Check parent directory of the running executable (frozen production install)
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(parent) = exe.parent() {
+            if supervisor::find_sidecar_binary(parent).is_some() || supervisor::find_service_dir(parent).is_some() {
+                return parent.to_path_buf();
+            }
+        }
+    }
+    // 2. Check bundled resource directory
     if let Ok(resource) = app_handle.path().resource_dir() {
-        if supervisor::find_service_dir(&resource).is_some() {
+        if supervisor::find_sidecar_binary(&resource).is_some() || supervisor::find_service_dir(&resource).is_some() {
             return resource;
         }
     }
+    // 3. Check current working directory
     if let Ok(cwd) = std::env::current_dir() {
-        if supervisor::find_service_dir(&cwd).is_some() {
+        if supervisor::find_sidecar_binary(&cwd).is_some() || supervisor::find_service_dir(&cwd).is_some() {
             return cwd;
-        }
-    }
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(parent) = exe.parent() {
-            if supervisor::find_service_dir(parent).is_some() {
-                return parent.to_path_buf();
-            }
         }
     }
     std::env::current_dir().unwrap_or_default()

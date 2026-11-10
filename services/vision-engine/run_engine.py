@@ -7,6 +7,10 @@ import os
 import sys
 from pathlib import Path
 
+# Disable unvetted native C-extensions that trigger Windows Smart App Control (SAC)
+os.environ["MARKUPSAFE_NO_SPEEDUPS"] = "1"
+os.environ["WEBSOCKETS_NO_EXTENSIONS"] = "1"
+
 # In PyInstaller bundles, _MEIPASS points to the extracted bundle root
 if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
     bundle_dir = Path(sys._MEIPASS)

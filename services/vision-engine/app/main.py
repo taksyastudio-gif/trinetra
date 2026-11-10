@@ -16,6 +16,11 @@ import threading
 from typing import Any, Dict, List, Optional, Union
 import uuid
 
+
+# Enforce pure-Python fallbacks to eliminate unsigned .pyd blocks in Windows Smart App Control
+os.environ.setdefault("MARKUPSAFE_NO_SPEEDUPS", "1")
+os.environ.setdefault("WEBSOCKETS_NO_EXTENSIONS", "1")
+
 from fastapi import Depends, FastAPI, Header, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field

@@ -138,7 +138,7 @@ export function DownloadShowcase({
 
   const windowsDownloadUrl =
     release?.windowsAsset?.downloadUrl ||
-    "https://github.com/taksyastudio-gif/trinetra/releases/latest/download/Trinetra.exe";
+    "https://github.com/taksyastudio-gif/trinetra/releases/latest/download/Trinetra-v0.2.0-Setup.exe";
   const windowsSize = release?.windowsAsset?.size
     ? formatBytes(release.windowsAsset.size)
     : "454.5 MB";

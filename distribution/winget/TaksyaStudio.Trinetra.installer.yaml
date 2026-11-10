@@ -3,15 +3,11 @@ PackageIdentifier: TaksyaStudio.Trinetra
 PackageVersion: 0.2.0
 InstallerLocale: en-US
 MinimumOSVersion: 10.0.0.0
-InstallerType: zip
-NestedInstallerType: portable
-NestedInstallerFiles:
-  - RelativeFilePath: Trinetra/Trinetra.exe
-    PortableCommandAlias: trinetra
+InstallerType: nullsoft
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/taksyastudio-gif/trinetra/releases/download/v0.2.0/Trinetra-v0.2.0-Standalone-Windows.zip
-    InstallerSha256: A2579362A3A5FD3B032F0002229D65831E81A1257E6FE0457CACD57269BECA43
+    InstallerUrl: https://github.com/taksyastudio-gif/trinetra/releases/download/v0.2.0/Trinetra-v0.2.0-Setup.exe
+    InstallerSha256: 01D8B289967FA553A5954F09AE9D5FAB4A4E24B814FE0E0593BC6095DD7EA91F
     UpgradeBehavior: install
 ManifestType: installer
 ManifestVersion: 1.6.0
